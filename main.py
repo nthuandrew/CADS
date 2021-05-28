@@ -1,5 +1,5 @@
 from module.class_Data_Cleaner import Data_Cleaner
-from data.param import *
+from data.GV import *
 from module.util import *
 
 a = Data_Cleaner()

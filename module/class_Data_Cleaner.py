@@ -1,5 +1,5 @@
 from module.util import *
-from data.param import *
+from data.GV import *
 
 class Data_Cleaner():
     def __init__(self):
