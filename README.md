@@ -20,7 +20,7 @@ Chen-Zhi Su, ...
 
 
 ### Environment Setting:
-* python=??
+* python=3.8.10
 * GPU version:??
 * Install NVDIA GPU driver:??
 ```
