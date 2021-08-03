@@ -20,7 +20,7 @@
 # ----------	---	---------------------------------------------------------
 ###
 
-
+#//TODO: what's this part?
 ## 讀入法律辭典
 import pandas as pd
 
@@ -28,7 +28,7 @@ from pathlib import Path
 source_dir = Path(__file__).parent
 
 # read keyword file
-keyword_list=pd.read_excel(source_dir/'extra_dict/KWIC中英關鍵字-全部法律關鍵字2018-08-22 14-14.xlsx')
+keyword_list=pd.read_excel(source_dir/'extra_dict/KWIC中英關鍵字-全部法律關鍵字2018-08-22 14-14.xlsx', engine='openpyxl')
 
 import re
 # remove some pattern
@@ -64,7 +64,7 @@ import numpy as np
 # from importlib import reload
 # reload(jieba.analyse)
 #del jieba.analyse
-
+#//TODO: what's this part?
 base_path = source_dir/'extra_dict/'
 
 methods_name = {'dict1':0, 'dict2':1}
