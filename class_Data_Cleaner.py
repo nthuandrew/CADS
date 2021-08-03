@@ -22,12 +22,10 @@ class Data_Cleaner():
         return
 
 
-    def nlp_custody(self, keep_result=['a', 'b', 'c'], keep_willingness=[]):
+    def nlp_custody(self, df, df_neu, keep_result=['a', 'b', 'c'], keep_willingness=[]):
+        '''
+        '''
         info_dict={}
-        # 0. Get df
-        df = pd.read_csv('./data/raw/labels_full.csv')
-        df_neu = pd.read_csv('./data/raw/neutral_sentences.csv')
-        
 
         # 1.1 Data Selection
         # //TODO: what's this part mainly about? visualize? selection?
@@ -143,5 +141,7 @@ class Data_Cleaner():
 
 if __name__=='__main__':
     
+    df = pd.read_csv('./data/raw/labels_full.csv')
+    df_neu = pd.read_csv('./data/raw/neutral_sentences.csv')
     clean = Data_Cleaner()
-    df = clean.nlp_custody()
+    df = clean.nlp_custody(df, df_neu)
