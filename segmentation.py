@@ -7,7 +7,10 @@ from itertools import count
 import data_preprocess as dp
 txt_to_clean = dp.txt_to_clean
 clean_to_seg = dp.clean_to_seg
-# %%
+
+
+
+# //TODO Murphy mark the main pipe line (like what I do in Data_Cleaner)
 df = pd.read_csv('./data/cleaned/judgement_result_onehot.csv')
 df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')
 # %%
@@ -59,9 +62,9 @@ for index, df, df2 in zip(count(), df_list, df_list2):
             # print("debug")
     # display(df.loc[df.loc[:,i_column].isnull()][i_column])
 
-#//TODO: no reference for display
+#//TODO: csu fix no reference for display
 for df2 in df_list2:
-    display(df2[non_neutral_columns])
+    print(df2[non_neutral_columns])
 # %%
 df_list2_neu = []
 

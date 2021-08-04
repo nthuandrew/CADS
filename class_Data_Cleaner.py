@@ -5,41 +5,32 @@ class Data_Cleaner():
     def __init__(self):
         return
 
-    def _output_to_list(content, content_list):
-            #print(type(pd.Series()))
-            if type(content) is type(pd.Series()):
-                #print(type(pd.Series()))
-                content.apply(output_to_list, content_list=content_list)
-            elif type(content) is float:
-                if not np.isnan(content):
-                    content_list.append(content)
-            elif content is not np.nan:
-                content_list.append(content)
-            return
-
-    def show_info(self, df, cols):
+    
+    def show_info(self):
 
         return
 
 
-    def nlp_custody(self, df, df_neu, keep_result=['a', 'b', 'c'], keep_willingness=[]):
+    def nlp_custody(self, df, df_neu, keep_result=['a', 'b', 'c'], keep_willingness=['a']):
         '''
         '''
-        info_dict={}
+        self.info_dict={}
+
+        # //TODO csu working on result and willing
 
         # 1.1 Data Selection
-        # //TODO: what's this part mainly about? visualize? selection?
-        # //TODO: Subset specific results
+        # Subset specific results
+        # //TODO: csu mark
+        # a: 提出方勝, b: 相對方勝, c: 雙方共有, d: 其他人勝, e: 非親權（本次不探討）
         keep_result = ['a', 'b', 'c']
         df = df.loc[df['Result'].isin(keep_result)]
 
         print("Result count:", Counter(df['Result']))
         print("Willingness count:", Counter(df['Willingness']))
         
-        # //TODO: Select only Willingness == 'a'
+        # //TODO: csu Select only Willingness == 'a'
+        # a: 雙方有意願, ...
         df = df.loc[ df['Willingness'] == 'a']
-        # //TODO: Exclude Result == 'e'
-        #df = df[~(df['Result'] == 'e')]
 
         print("Willingness count:", Counter(df['Willingness']))
         print("Result count:", Counter(df['Result']))
@@ -72,8 +63,14 @@ class Data_Cleaner():
         
         
         # 2. onehot encoding
-        # //TODO: what's the different btw these columns?
-        # categorical = ['Result','Willingness','AK','RK','AN','RN']
+        # //TODO: Murphy 
+        '''
+        AK:
+        RK:
+        AN:
+        RN:
+        Type: a.一般親權（酌定） b.改定親權（改訂）
+        '''
         categorical = ['Result','Willingness','AK','RK','AN','RN', 'Type']
         df2 = df
 
@@ -96,8 +93,9 @@ class Data_Cleaner():
         df2.to_csv("./data/cleaned/judgement_result_onehot.csv")
         
 
-        
+        #//TODO: Murphy
         # 3. Seperate sentences into advantage, disadvantage, and neutral
+        ''''''
         applicant_advantage_column = df.columns[df.columns.to_series().str.contains('AA')].tolist()
         respondent_advantage_column = df.columns[df.columns.to_series().str.contains('RA')].tolist()
         applicant_disadvantage_column = df.columns[df.columns.to_series().str.contains('AD')].tolist()
@@ -117,9 +115,10 @@ class Data_Cleaner():
         disadvantage_list=[]
         neutral_list=[]
 
-        df2.loc[:,advantage_column].apply(_output_to_list, content_list=advantage_list)
-        df2.loc[:,disadvantage_column].apply(_output_to_list, content_list=disadvantage_list)
-        df_neu.loc[:,neutral_column].apply(_output_to_list, content_list=neutral_list)
+        # //TODO: Murphy
+        df2.loc[:,advantage_column].apply(output_to_list, content_list=advantage_list)
+        df2.loc[:,disadvantage_column].apply(output_to_list, content_list=disadvantage_list)
+        df_neu.loc[:,neutral_column].apply(output_to_list, content_list=neutral_list)
         
         # Save sentences
         pd.DataFrame(advantage_list).to_csv("data/cleaned/sentence_advantage.csv")
@@ -127,7 +126,7 @@ class Data_Cleaner():
         pd.DataFrame(neutral_list).to_csv("data/cleaned/sentence_neutral.csv")
         
 
-        #//TODO: Add txt to clean
+        #//TODO: csu Add txt to clean
 
 
         return
