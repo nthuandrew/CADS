@@ -268,3 +268,50 @@ def init_jieba(stop_words_path, dict_path, idf_path, userdict_path):
     for path in userdict_path:
         print(path)
         jieba.load_userdict(path)
+
+    return
+
+
+########################################################################################################################
+def jieba_cut(content):
+    if type(content)==float:
+        return float('nan')
+    #seg_list = jieba.lcut(content, HMM=True, cut_all=False)
+    #return " ".join(seg_list)
+    return jieba.lcut(content, HMM=True, cut_all=False)
+
+
+########################################################################################################################
+class Cut2Seg(object):
+    def __init__(self,cutter):
+        self.cutter=cutter
+
+    def cut(self,sentence):
+        return ' '.join(list(self.cutter(sentence)))
+
+    def cut_Array(self, sentence_list):
+        return np.vectorize(self.cut)(sentence_list)
+
+
+########################################################################################################################
+def json_to_txt(json_path,txt_path):
+    with open(json_path) as f:
+        data = json.load(f)
+
+    content=data['JFULL']
+    #display(content)
+
+    save_dir = os.path.expanduser(txt_path)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    path=json_path
+    match = re.split(r'\/',path)
+    match = re.split(r'\.',match[-1])
+    filename=match[0]
+
+    save_path=save_dir+filename+".txt"
+    with open(save_path, "w") as f:
+        f.write(content)
+
+    return save_path

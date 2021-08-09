@@ -78,7 +78,7 @@ dict_path_list = [str(base_path/s) for s in dict_filenames]
 idf_path_list = [str(base_path/s) for s in idf_filenames]
 userdict_list = [[str(base_path/s) for s in userdict_filename[i]] for i in range(len(userdict_filename))]
 
-#// TODO csu moving functions to class_Segmentatin & util.py
+
 def init_jieba(stop_words_path, dict_path, idf_path, userdict_path):
     #多核心平行運算，只支援linux
     if os.name == 'posix':

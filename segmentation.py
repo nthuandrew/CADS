@@ -62,7 +62,7 @@ for index, df, df2 in zip(count(), df_list, df_list2):
             # print("debug")
     # display(df.loc[df.loc[:,i_column].isnull()][i_column])
 
-#//TODO: csu fix no reference for display
+
 for df2 in df_list2:
     print(df2[non_neutral_columns])
 # %%

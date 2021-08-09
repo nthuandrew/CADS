@@ -11,26 +11,22 @@ class Data_Cleaner():
         return
 
 
-    def nlp_custody(self, df, df_neu, keep_result=['a', 'b', 'c'], keep_willingness=['a']):
+    def nlp_custody_judgment(self, df, df_neu, keep_result=['a', 'b', 'c'], keep_willingness=['a']):
         '''
         '''
         self.info_dict={}
 
-        # //TODO csu working on result and willing
-
         # 1.1 Data Selection
-        # Subset specific results
-        # //TODO: csu mark
-        # a: 提出方勝, b: 相對方勝, c: 雙方共有, d: 其他人勝, e: 非親權（本次不探討）
-        keep_result = ['a', 'b', 'c']
+        # Select result
+        # a: 提出方勝, b: 相對方勝, c: 雙方共有, d: 其他人勝, e: 非親權（本次不探討）, f: 子女判給不同方
         df = df.loc[df['Result'].isin(keep_result)]
 
         print("Result count:", Counter(df['Result']))
         print("Willingness count:", Counter(df['Willingness']))
         
-        # //TODO: csu Select only Willingness == 'a'
-        # a: 雙方有意願, ...
-        df = df.loc[ df['Willingness'] == 'a']
+        # Select Willingness
+        # a: 雙方有意願, b: 提出方有意願, c: 相對方有意願, d: 雙方無意願, e: 其他
+        df = df.loc[ df['Willingness'].isin(keep_willingness)]
 
         print("Willingness count:", Counter(df['Willingness']))
         print("Result count:", Counter(df['Result']))
@@ -127,6 +123,8 @@ class Data_Cleaner():
         
 
         #//TODO: csu Add txt to clean
+        
+        
 
 
         return
@@ -139,7 +137,7 @@ class Data_Cleaner():
 
 
 if __name__=='__main__':
-    
+    # clean judgements
     df = pd.read_csv('./data/raw/labels_full.csv')
     df_neu = pd.read_csv('./data/raw/neutral_sentences.csv')
     clean = Data_Cleaner()
