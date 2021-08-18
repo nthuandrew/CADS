@@ -62,9 +62,13 @@ class Data_Cleaner():
         # //TODO: Murphy 
         '''
         AK: 提出方身分
+        (options)a:父, b:母, c:男性親屬, d:女性親屬, e:其他
         RK: 相對方身分
+        (options)a:父, b:母, c:男性親屬, d:女性親屬, e:其他
         AN: 提出方國籍
+        (options)a:本國, b:大陸籍, c:其他, d:雙重國籍
         RN: 相對方國籍
+        (options)a:本國, b:大陸籍, c:其他, d:雙重國籍
         Type: a.一般親權（酌定） b.改定親權（改訂）
         '''
         categorical = ['Result','Willingness','AK','RK','AN','RN', 'Type']

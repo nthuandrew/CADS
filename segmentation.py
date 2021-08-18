@@ -15,7 +15,7 @@ clean_to_seg = dp.clean_to_seg
 df = pd.read_csv('./data/cleaned/judgement_result_onehot.csv')
 df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')
 # %%
-# 2. Seperating the neutral and non-neitral column name
+# 2. Seperating the neutral and non-neutral column name
 import matplotlib
 
 categorical = ['Result','Willingness','AK','RK','AN','RN', 'Type']
