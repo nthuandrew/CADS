@@ -62,10 +62,14 @@ class Data_Cleaner():
         # 2. onehot encoding
         # //TODO: Murphy 
         '''
-        AK:
-        RK:
-        AN:
-        RN:
+        AK: 提出方身分
+        (options)a:父, b:母, c:男性親屬, d:女性親屬, e:其他
+        RK: 相對方身分
+        (options)a:父, b:母, c:男性親屬, d:女性親屬, e:其他
+        AN: 提出方國籍
+        (options)a:本國, b:大陸籍, c:其他, d:雙重國籍
+        RN: 相對方國籍
+        (options)a:本國, b:大陸籍, c:其他, d:雙重國籍
         Type: a.一般親權（酌定） b.改定親權（改訂）
         '''
         categorical = ['Result','Willingness','AK','RK','AN','RN', 'Type']
@@ -91,6 +95,8 @@ class Data_Cleaner():
         
 
         #//TODO: Murphy
+        # Fina out the column names of adv/dis/neutral sentences. 
+        # The following example shows the naming rule of advantage sentences columns: AA1, AA2.
         # 3. Seperate sentences into advantage, disadvantage, and neutral
         ''''''
         applicant_advantage_column = df.columns[df.columns.to_series().str.contains('AA')].tolist()
@@ -113,6 +119,7 @@ class Data_Cleaner():
         neutral_list=[]
 
         # //TODO: Murphy
+        # Exracting advantage/disadvantage/neutral sentence according to their column names by output_to_list(func)
         df2.loc[:,advantage_column].apply(output_to_list, content_list=advantage_list)
         df2.loc[:,disadvantage_column].apply(output_to_list, content_list=disadvantage_list)
         df_neu.loc[:,neutral_column].apply(output_to_list, content_list=neutral_list)

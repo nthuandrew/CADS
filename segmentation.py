@@ -11,10 +11,11 @@ clean_to_seg = dp.clean_to_seg
 
 
 # //TODO Murphy mark the main pipe line (like what I do in Data_Cleaner)
+# 1. Import data
 df = pd.read_csv('./data/cleaned/judgement_result_onehot.csv')
 df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')
 # %%
-# 將 neutral 與 非neutral 分開
+# 2. Seperating the neutral and non-neutral column name
 import matplotlib
 
 categorical = ['Result','Willingness','AK','RK','AN','RN', 'Type']
@@ -36,6 +37,7 @@ for df, df2 in zip(df_list,df_list_neu):
     print('neutral columns: \n %s \n' % all_neutral_columns)
     print('non neutral columns: \n %s \n' % non_neutral_columns)
 # %%
+# 3. Extract the non-neutral sentence data: copy a new dataframe which only includes the non-neutral column in the original dataframe.
 meta_info = ['filename', 'ID', 'Others']
 categorical = ['Result','Willingness','Type', 'AK','RK','AN','RN']
 
@@ -66,6 +68,8 @@ for index, df, df2 in zip(count(), df_list, df_list2):
 for df2 in df_list2:
     print(df2[non_neutral_columns])
 # %%
+# 4. Extract the neutral sentence data: copy a new dataframe which only includes the neutral column in the original dataframe.
+
 df_list2_neu = []
 
 for df in df_list_neu:
@@ -97,6 +101,7 @@ df_output = df_list2[0]
 df_neu_output = df_list2_neu[0]
 
 # %%
+# 5. Ouptut the seperated data.
 df_output.to_csv("./data/cleaned/judgment_result_seg.csv")
 df_neu_output.to_csv("./data/cleaned/judgment_result_seg_neu.csv")
 # %%

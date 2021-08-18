@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 from sklearn.utils import shuffle
+# TODO: Murphy -> add comments
 # %%
 df = pd.read_csv("./data/cleaned/judgment_result_seg.csv")
 df_neu = pd.read_csv("./data/cleaned/judgment_result_seg_neu.csv")
