@@ -1,6 +1,7 @@
 from module.util import *
 from data.GV import *
 
+#//TODO: 弘祥 solid
 class Data_Cleaner():
     def __init__(self):
         return

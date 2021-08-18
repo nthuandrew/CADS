@@ -9,11 +9,14 @@ from collections import Counter
 import json
 from data.GV import *
 
-
+#//TODO: 弘祥 solid
 ########################################################################################################################
 def output_to_list(content, content_list):
     '''
     Purpose...
+    :param content: type. Description.
+    :param content_lst: list. 
+    :return:
     '''
     #print(type(pd.Series()))
     if type(content) is type(pd.Series()):

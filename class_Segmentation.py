@@ -139,7 +139,7 @@ class Segmentation():
         df_output.to_csv("./data/cleaned/judgment_result_seg.csv")
         df_neu_output.to_csv("./data/cleaned/judgment_result_seg_neu.csv")
         
-        #//TODO: csu remove extra_dict folder from the root.
+        #//TODO: csu remove extra_dict folder from the root after finish this class.
 
         return df_output, df_neu_output
     
