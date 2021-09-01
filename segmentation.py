@@ -10,7 +10,6 @@ clean_to_seg = dp.clean_to_seg
 
 
 
-# //TODO Murphy mark the main pipe line (like what I do in Data_Cleaner)
 # 1. Import data
 df = pd.read_csv('./data/cleaned/judgement_result_onehot.csv')
 df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')

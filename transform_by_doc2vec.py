@@ -53,6 +53,8 @@ seed_funcs = [model_dbow.random.seed, model_dmm.random.seed]
 # %%
 import numpy as np
 
+#//TODO Murphy: create seg_to_BERT().
+#//TODO Murphy: put these functions into util.py
 def seg_to_DocVec(input_txt, model, seed_funcs=seed_funcs):
 #     # Doc2Vec infer_vector() could (as option?) offer deterministic result · Issue #447 · RaRe-Technologies/gensim
 #     # https://github.com/RaRe-Technologies/gensim/issues/447
