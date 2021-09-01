@@ -1,20 +1,22 @@
 # %%
+# Import required libraries
 import pandas as pd
 import numpy as np
 from collections import Counter
 from sklearn.utils import shuffle
-# TODO: Murphy -> add comments
 # %%
+# Import dataset
 df = pd.read_csv("./data/cleaned/judgment_result_seg.csv")
 df_neu = pd.read_csv("./data/cleaned/judgment_result_seg_neu.csv")
 #%%
+# Seperate dataset to train/valid/test
 from sklearn.model_selection import train_test_split
 df_train, df_test = train_test_split(df, test_size=0.2, random_state=1)
 df_train_neu, df_test_neu = train_test_split(df_neu, test_size=0.2, random_state=1)
 df_train, df_val = train_test_split(df_train, test_size=0.2, random_state=1) 
 df_train_neu, df_val_neu = train_test_split(df_train_neu, test_size=0.2, random_state=1)
 # %%
-# 將 neutral 與 非neutral 分開
+# Seperate neutral and non-neutral data
 import matplotlib
 
 categorical = ['Result','Willingness','AK','RK','AN','RN', 'Type']
@@ -37,10 +39,12 @@ for df, df_neu in zip(df_list, df_list_neu):
     print('neutral columns: \n %s \n' % all_neutral_columns)
     print('non neutral columns: \n %s \n' % non_neutral_columns)
 # %%
+# Import trained doc2vec model
 from gensim.models.doc2vec import Doc2Vec
 model_dbow = Doc2Vec.load('./data/model/dbow_100_ADV_DIS_model.bin')
 model_dmm = Doc2Vec.load('./data/model/dmm_100_ADV_DIS_model.bin')
 # %%
+# Freeze the random seed and concatenate doc2vec models
 from gensim.test.test_doc2vec import ConcatenatedDoc2Vec
 model_dbow.random.seed(0)
 model_dmm.random.seed(0)
@@ -79,6 +83,7 @@ def get_random_item(dataframe, selected_columns, row_index , verbose=False):
 # set True for debug
 debug = False
 # %%
+# Transform segmented text data to doc2vec vectors and augmenting data for training set.
 import copy
 from itertools import count
 from collections import defaultdict 
@@ -88,7 +93,7 @@ from importlib import import_module, reload
 
 
 mapping_dict = {0:'train', 1:'val', 2:'test'}
-
+# Set the augment size
 max_multiple = 20
 
 df_list3 = []
@@ -96,9 +101,9 @@ df_list3 = []
 
 # temp_df2_list_dict = defaultdict(list)
 
-# 先處理 neutral columns
+# Transform non-neutral data first.
 for index, df in zip(count(), df_list):
-    
+    # Only augment data gor trainin set by setting the multiple_items for xxx, otherwise(valid, test) would be 1.
     if index == 0:
         # training set
         multiple_times = max_multiple
@@ -156,7 +161,7 @@ df_list3_neu = []
 
 # temp_df2_list_dict = defaultdict(list)
 
-# 先處理 neutral columns
+# Transform neutral dataset
 for index, df in zip(count(), df_list_neu):
     
     if index == 0:
