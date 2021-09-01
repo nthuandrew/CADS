@@ -1,4 +1,5 @@
 # %%
+#//TODO: 弘祥註解
 import pandas as pd
 import numpy as np
 advantage_list = pd.read_csv("./data/cleaned/sentence_advantage.csv")['0'].tolist()

@@ -204,8 +204,21 @@ class Segmentation():
             df_list2_neu.append(df2)
 
         df_neu_output = self._execute_segmented_articles(df_list_neu, df_list2_neu, all_neutral_columns)[0]
+        
         df_output.to_csv("./data/cleaned/judgment_result_seg.csv")
-        df_neu_output.to_csv("./data/cleaned/judgment_result_seg_neu.csv")      
+        df_neu_output.to_csv("./data/cleaned/judgment_result_seg_neu.csv")
+        
+        #//TODO: csu remove extra_dict folder from the root after finish this class.
+
+        return df_output, df_neu_output
+    
+    def run_bert(self, language):
+        
+        return
+
+    # TODO: Murphy -> def _wrap_data()
+
+
 
 if __name__=='__main__':
     df = pd.read_csv('./data/cleaned/judgement_result_onehot.csv')
