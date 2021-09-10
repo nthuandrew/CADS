@@ -3,13 +3,14 @@ import os
 import re
 import pandas as pd
 import numpy as np
+import matplotlib
 import jieba
 import jieba.analyse
 from collections import Counter
 import json
 from data.GV import *
 
-#//TODO: 弘祥 solid
+
 ########################################################################################################################
 def output_to_list(content, content_list):
     '''
