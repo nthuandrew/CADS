@@ -5,6 +5,8 @@ from collections import Counter
 from sklearn.utils import shuffle
 from itertools import count
 import data_preprocess as dp
+from IPython.display import display
+
 txt_to_clean = dp.txt_to_clean
 clean_to_seg = dp.clean_to_seg
 
@@ -99,8 +101,12 @@ for index, df, df2 in zip(count(), df_list_neu, df_list2_neu):
 df_output = df_list2[0]
 df_neu_output = df_list2_neu[0]
 
+# Debug
+
+display(df_output)
+display(df_neu_output)
 # %%
 # 5. Ouptut the seperated data.
-df_output.to_csv("./data/cleaned/judgment_result_seg.csv")
-df_neu_output.to_csv("./data/cleaned/judgment_result_seg_neu.csv")
+df_output.to_csv("./data/cleaned/judgment_result_seg.csv", index=False)
+df_neu_output.to_csv("./data/cleaned/judgment_result_seg_neu.csv", index=False)
 # %%

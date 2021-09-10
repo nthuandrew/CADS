@@ -55,8 +55,8 @@ class Data_Cleaner():
         df_neu = df_neu[df_neu['ID'].isin(df['ID'])]
         
         # Save subsets of dfs
-        df.to_csv("./data/cleaned/judgement_result.csv")
-        df_neu.to_csv("./data/cleaned/judgement_result_neu.csv")
+        df.to_csv("./data/cleaned/judgement_result.csv", index=False)
+        df_neu.to_csv("./data/cleaned/judgement_result_neu.csv", index=False)
         
         
         # 2. onehot encoding
@@ -90,7 +90,7 @@ class Data_Cleaner():
             df2[i_column] = df_tmp2.apply(lambda x: tuple(x), axis=1).apply(np.array)
 
         # Save onehot
-        df2.to_csv("./data/cleaned/judgement_result_onehot.csv")
+        df2.to_csv("./data/cleaned/judgement_result_onehot.csv", index=False)
         
 
         # Fina out the column names of adv/dis/neutral sentences. 
@@ -123,9 +123,9 @@ class Data_Cleaner():
         df_neu.loc[:,neutral_column].apply(output_to_list, content_list=neutral_list)
         
         # Save sentences
-        pd.DataFrame(advantage_list).to_csv("data/cleaned/sentence_advantage.csv")
-        pd.DataFrame(disadvantage_list).to_csv("data/cleaned/sentence_disadvantage.csv")
-        pd.DataFrame(neutral_list).to_csv("data/cleaned/sentence_neutral.csv")
+        pd.DataFrame(advantage_list).to_csv("data/cleaned/sentence_advantage.csv", index=False)
+        pd.DataFrame(disadvantage_list).to_csv("data/cleaned/sentence_disadvantage.csv", index=False)
+        pd.DataFrame(neutral_list).to_csv("data/cleaned/sentence_neutral.csv", index=False)
         
 
         #//TODO: csu Add txt_to_clean here
@@ -147,4 +147,4 @@ if __name__=='__main__':
     df = pd.read_csv('./data/raw/labels_full.csv')
     df_neu = pd.read_csv('./data/raw/neutral_sentences.csv')
     clean = Data_Cleaner()
-    df = clean.nlp_custody(df, df_neu)
+    df = clean.nlp_custody_judgment(df, df_neu)

@@ -1,13 +1,19 @@
 from module.util import *
 from data.GV import *
 
+
 class Segmentation():
-    def __init__(self):
-        
+    def __init__(self, type='jieba'):
+        if type == 'jieba':
+            self.clean2seg = clean_to_seg_by_jieba
+        elif type == "bert":
+            self.clean2seg = clean_to_seg_by_tokenizer
+        self.txt2clean = txt_to_clean
+        self.type=type
         return
 
     # //TODO: Murphy 調整 clean_to_seg, segment_articles() 使 bert 可用
-    def _execute_segmented_articles(self, df_list, df_list2, columns):
+    def _segment_articles(self, df_list, df_list2, columns):
         '''
         Purpose...
         :param 
@@ -16,13 +22,13 @@ class Segmentation():
         '''
         debug = False
 
-        for index, df, df2 in zip(count(), df_list, df_list2):
+        for df, df2 in zip(df_list, df_list2):
             for i_column in columns:
                 # select none empty entries, and apply txt_to_clean, clean_to_seg, seg_to_DocVec
                 if debug:
                     df2[i_column] = df[i_column].apply(lambda x: i_column)
                 else:
-                    df2[i_column] = df.loc[~df.loc[:,i_column].isnull()][i_column].apply(txt_to_clean, textmode=True).apply(clean_to_seg, textmode=True)
+                    df2[i_column] = df.loc[~df.loc[:,i_column].isnull()][i_column].apply(self.txt2clean, textmode=True).apply(self.clean2seg, textmode=True)
         return df_list2  
 
 
@@ -69,24 +75,9 @@ class Segmentation():
 
         init_jieba(*list(zip(stop_words_path_list, dict_path_list, idf_path_list, userdict_list))[methods_name['dict1']])
         return
-                    
-
-    # TODO: Murphy
-    # 1. 確認跑出來的結果跟之前一樣
-    # 3. 多傳一個 type 到 clean_to_seg 裡面
-    def _execute_segmented_articles(self, df_list, df_list2, columns, type="jieba"):
-        debug = False
-
-        for index, df, df2 in zip(count(), df_list, df_list2):
-            for i_column in columns:
-                # select none empty entries, and apply txt_to_clean, clean_to_seg, seg_to_DocVec
-                if debug:
-                    df2[i_column] = df[i_column].apply(lambda x: i_column)
-                else:
-                    df2[i_column] = df.loc[~df.loc[:,i_column].isnull()][i_column].apply(txt_to_clean, textmode=True).apply(clean_to_seg, textmode=True)
-        return df_list2                    
+                                     
         
-    def segment_articles(self, df, df_neu):
+    def segment_articles_wrapper(self, df, df_neu):
         '''
         Purpose...
         :param 
@@ -126,7 +117,10 @@ class Segmentation():
             df2[meta_info+categorical] = df[meta_info+categorical]
             df_list2.append(df2)
 
-        df_output = self._execute_segmented_articles(df_list, df_list2, non_neutral_columns)[0]
+        df_output = self._segment_articles(df_list, df_list2, non_neutral_columns)[0]
+        
+        print(df_output[non_neutral_columns])
+        
         df_list2_neu = []
 
         for df in df_list_neu:
@@ -134,10 +128,12 @@ class Segmentation():
             df2['ID'] = df['ID']
             df_list2_neu.append(df2)
 
-        df_neu_output = self._execute_segmented_articles(df_list_neu, df_list2_neu, all_neutral_columns)[0]
-        
-        df_output.to_csv("./data/cleaned/judgment_result_seg.csv")
-        df_neu_output.to_csv("./data/cleaned/judgment_result_seg_neu.csv")
+        df_neu_output = self._segment_articles(df_list_neu, df_list2_neu, all_neutral_columns)[0]
+        # Debug
+        display(df_output)
+        display(df_neu_output)
+        df_output.to_csv(f"./data/cleaned/judgment_result_seg_{self.type}.csv", index=False)
+        df_neu_output.to_csv(f"./data/cleaned/judgment_result_seg_neu_{self.type}.csv", index=False)
         
         #//TODO: csu remove extra_dict folder from the root after finish this class.
 
@@ -154,5 +150,5 @@ if __name__=='__main__':
     seg = Segmentation()
     # df, df_neu = seg.run_jieba(df, df_neu)
     seg.initialize_jieba()
-    seg.segment_articles(df, df_neu)
+    seg.segment_articles_wrapper(df, df_neu)
 

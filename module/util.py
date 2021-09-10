@@ -9,6 +9,8 @@ import jieba.analyse
 from collections import Counter
 import json
 from data.GV import *
+from IPython.display import display
+from importlib import import_module, reload
 
 
 ########################################################################################################################
@@ -217,7 +219,18 @@ def txt_to_clean(input_txt, clean_path=None, textmode=False):
 
 
 ########################################################################################################################
-def clean_to_seg(input_txt, seg_path=None, textmode=False):
+from transformers import BertTokenizer
+def clean_to_seg_by_tokenizer(input_txt, seg_path=None, textmode=False):
+    PRETRAINED_MODEL_NAME = "bert-base-chinese"
+    tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)
+    word_pieces = ["[CLS]"]
+    tokens_text = tokenizer(input_txt)
+    word_pieces += tokens_text + ["[SEP]"]
+    ids = tokenizer.convert_tokens_to_ids(word_pieces)
+    return ids
+
+
+def clean_to_seg_by_jieba(input_txt, seg_path=None, textmode=False):
     '''
     Using "jieba" to segament chinese sentences.
     '''

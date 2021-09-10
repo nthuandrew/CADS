@@ -6,8 +6,8 @@ from collections import Counter
 from sklearn.utils import shuffle
 # %%
 # Import dataset
-df = pd.read_csv("./data/cleaned/judgment_result_seg.csv")
-df_neu = pd.read_csv("./data/cleaned/judgment_result_seg_neu.csv")
+df = pd.read_csv("./data/cleaned/judgment_result_seg_jieba.csv")
+df_neu = pd.read_csv("./data/cleaned/judgment_result_seg_neu_jieba.csv")
 #%%
 # Seperate dataset to train/valid/test
 from sklearn.model_selection import train_test_split
@@ -139,7 +139,7 @@ for index, df in zip(count(), df_list):
         
     # save training se
     total_number = len(tmp_df)
-    tmp_df.to_csv("./data/cleaned/judgment_result_doc2vec_{}.csv".format(mapping_dict[index]))
+    tmp_df.to_csv("./data/cleaned/judgment_result_doc2vec_{}.csv".format(mapping_dict[index]), index=False)
 
             
     #df_list3[index] = pd.concat(temp_df2_list_dict[index], ignore_index=True)
@@ -196,7 +196,7 @@ for index, df in zip(count(), df_list_neu):
         
     # save training set
     total_number = len(tmp_df)
-    tmp_df.to_csv("./data/cleaned/judgment_result_doc2vec_{}.csv".format(mapping_dict[index]))
+    tmp_df.to_csv("./data/cleaned/judgment_result_doc2vec_{}.csv".format(mapping_dict[index]), index=False)
 
             
     #df_list3[index] = pd.concat(temp_df2_list_dict[index], ignore_index=True)

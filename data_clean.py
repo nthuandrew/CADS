@@ -52,8 +52,8 @@ for i_column in categorical:
 # %%
 df_neu = df_neu[df_neu['ID'].isin(df['ID'])]
 # %%
-df.to_csv("./data/cleaned/judgement_result.csv")
-df_neu.to_csv("./data/cleaned/judgement_result_neu.csv")
+df.to_csv("./data/cleaned/judgement_result.csv", index=False)
+df_neu.to_csv("./data/cleaned/judgement_result_neu.csv", index=False)
 # %%
 from collections import Counter
 
@@ -77,7 +77,7 @@ for i_column in categorical:
     df2[i_column] = df_tmp2.apply(lambda x: tuple(x), axis=1).apply(np.array)
 
 # %%
-df2.to_csv("./data/cleaned/judgement_result_onehot.csv")
+df2.to_csv("./data/cleaned/judgement_result_onehot.csv", index=False)
 # %%
 import numpy as np
 
@@ -114,7 +114,7 @@ df2.loc[:,advantage_column].apply(output_to_list, content_list=advantage_list)
 df2.loc[:,disadvantage_column].apply(output_to_list, content_list=disadvantage_list)
 df_neu.loc[:,neutral_column].apply(output_to_list, content_list=neutral_list)
 # %%
-pd.DataFrame(advantage_list).to_csv("data/cleaned/sentence_advantage.csv")
-pd.DataFrame(disadvantage_list).to_csv("data/cleaned/sentence_disadvantage.csv")
-pd.DataFrame(neutral_list).to_csv("data/cleaned/sentence_neutral.csv")
+pd.DataFrame(advantage_list).to_csv("data/cleaned/sentence_advantage.csv", index=False)
+pd.DataFrame(disadvantage_list).to_csv("data/cleaned/sentence_disadvantage.csv", index=False)
+pd.DataFrame(neutral_list).to_csv("data/cleaned/sentence_neutral.csv", index=False)
 # %%
