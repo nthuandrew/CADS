@@ -147,8 +147,10 @@ class Segmentation():
         
         return
 
-    # TODO: Murphy -> def _wrap_data()
-    def _execute_segmented_articles(self, df_list, df_list2, columns):
+    # TODO: Murphy
+    # 1. 確認跑出來的結果跟之前一樣
+    # 3. 多傳一個 type 到 clean_to_seg 裡面
+    def _execute_segmented_articles(self, df_list, df_list2, columns, type="jieba"):
         debug = False
 
         for index, df, df2 in zip(count(), df_list, df_list2):
@@ -160,10 +162,9 @@ class Segmentation():
                     df2[i_column] = df.loc[~df.loc[:,i_column].isnull()][i_column].apply(txt_to_clean, textmode=True).apply(clean_to_seg, textmode=True)
         return df_list2                    
 
-    def _segment_articles(self):
-        df = pd.read_csv('./data/cleaned/judgement_result_onehot.csv')
-        df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')
+    def segment_articles(self, df, df_neu):
         
+         
         # 將 neutral 與 非neutral 分開
         categorical = ['Result','Willingness','AK','RK','AN','RN', 'Type']
         meta_info = ['filename', 'ID', 'Others']
@@ -216,8 +217,6 @@ class Segmentation():
         
         return
 
-    # TODO: Murphy -> def _wrap_data()
-
 
 
 if __name__=='__main__':
@@ -225,6 +224,6 @@ if __name__=='__main__':
     df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')
     seg = Segmentation()
     # df, df_neu = seg.run_jieba(df, df_neu)
-    seg.run_jieba(df, df_neu)
-    seg._segment_articles()
+    seg.run_jieba()
+    seg.segment_articles(df, df_neu)
 

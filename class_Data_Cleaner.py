@@ -60,7 +60,6 @@ class Data_Cleaner():
         
         
         # 2. onehot encoding
-        # //TODO: Murphy 
         '''
         AK: 提出方身分
         (options)a:父, b:母, c:男性親屬, d:女性親屬, e:其他
@@ -94,7 +93,6 @@ class Data_Cleaner():
         df2.to_csv("./data/cleaned/judgement_result_onehot.csv")
         
 
-        #//TODO: Murphy
         # Fina out the column names of adv/dis/neutral sentences. 
         # The following example shows the naming rule of advantage sentences columns: AA1, AA2.
         # 3. Seperate sentences into advantage, disadvantage, and neutral
@@ -118,7 +116,6 @@ class Data_Cleaner():
         disadvantage_list=[]
         neutral_list=[]
 
-        # //TODO: Murphy
         # Exracting advantage/disadvantage/neutral sentence according to their column names by output_to_list(func)
         df2.loc[:,advantage_column].apply(output_to_list, content_list=advantage_list)
         df2.loc[:,disadvantage_column].apply(output_to_list, content_list=disadvantage_list)
