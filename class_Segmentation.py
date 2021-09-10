@@ -32,7 +32,7 @@ class Segmentation():
         return df_list2  
 
 
-    def initialize_jieba(self):
+    def _initialize_jieba(self):
         '''
         Initialize jieba.
         Ref:
@@ -84,6 +84,10 @@ class Segmentation():
         :param 
         :return:
         '''
+
+        # //TODO csu check if this work
+        if self.type == 'jieba':
+            self._initialize_jieba()
         
          
         # 將 neutral 與 非neutral 分開
@@ -148,7 +152,5 @@ if __name__=='__main__':
     df = pd.read_csv('./data/cleaned/judgement_result_onehot.csv')
     df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')
     seg = Segmentation()
-    # df, df_neu = seg.run_jieba(df, df_neu)
-    seg.initialize_jieba()
     seg.segment_articles_wrapper(df, df_neu)
 
