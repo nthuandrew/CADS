@@ -138,6 +138,8 @@ class Segmentation():
         display(df_neu_output)
         df_output.to_csv(f"./data/cleaned/judgment_result_seg_{self.type}.csv", index=False)
         df_neu_output.to_csv(f"./data/cleaned/judgment_result_seg_neu_{self.type}.csv", index=False)
+        df_output.to_pickle(f"./data/cleaned/judgment_result_seg_{self.type}.pkl")
+        df_neu_output.to_pickle(f"./data/cleaned/judgment_result_seg_neu_{self.type}.pkl")
         
         #//TODO: csu remove extra_dict folder from the root after finish this class.
 
@@ -151,6 +153,6 @@ class Segmentation():
 if __name__=='__main__':
     df = pd.read_csv('./data/cleaned/judgement_result_onehot.csv')
     df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')
-    seg = Segmentation()
-    seg.segment_articles_wrapper(df, df_neu)
+    seg = Segmentation(type="bert")
+    df_output, df_neu_output = seg.segment_articles_wrapper(df, df_neu)
 

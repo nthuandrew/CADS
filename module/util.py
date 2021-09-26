@@ -11,9 +11,151 @@ import json
 from data.GV import *
 from IPython.display import display
 from importlib import import_module, reload
+import torch
+import random
+import datetime
+from torch.utils.data import Dataset, DataLoader
+from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix, f1_score
 
 
 ########################################################################################################################
+def setup_device():
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print('There are %d GPU(s) available.' % torch.cuda.device_count())
+        print('We will use the GPU:', torch.cuda.get_device_name(0))
+    else:
+        print('No GPU available, using the CPU instead.')
+        device = torch.device("cpu")
+    return device
+
+def seed_torch(seed=1234):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed) # if you are using multi-GPU.
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+
+def format_time(elapsed):
+    '''
+    Takes a time in seconds and returns a string hh:mm:ss
+    '''
+    # Round to the nearest second.
+    elapsed_rounded = int(round((elapsed)))
+    
+    # Format as hh:mm:ss
+    return str(datetime.timedelta(seconds=elapsed_rounded))
+
+class SentenceDataset(Dataset):
+    # 讀取前處理後的 tsv 檔並初始化一些參數
+    def __init__(self, mode):
+        assert mode in ["train", "test", "valid"]  # 一般訓練你會需要 dev set
+        self.mode = mode
+        # 大數據你會需要用 iterator=True
+        # self.df = pd.read_csv("data/cleaned/" + mode + ".csv").fillna("")
+        self.df = pd.read_pickle("data/cleaned/" + mode + ".pkl").fillna("")
+        self.len = len(self.df)
+    
+    # 定義回傳一筆訓練 / 測試數據的函式
+    def __getitem__(self, idx):
+        if self.mode == "test":
+            ids = self.df.iloc[idx, 1]
+            label_tensor = None
+            length = len(self.df.iloc[idx, 1])
+        else:
+            label, ids = self.df.iloc[idx, :].values
+            # 將 label 文字也轉換成索引方便轉換成 tensor
+            label_id = label
+            label_tensor = torch.tensor(label_id)
+            length = len(self.df.iloc[idx, 1])
+
+        len_a = len(ids)
+        tokens_tensor = torch.tensor(ids)
+        
+        # 將第一句包含 [SEP] 的 token 位置設為 0，其他為 1 表示第二句
+        segments_tensor = torch.tensor([0] * len_a)
+        length_tensor = torch.tensor(length)
+        return (tokens_tensor, segments_tensor, length_tensor, label_tensor)
+    
+    def __len__(self):
+        return self.len
+
+def my_pad_sequence(sequences, batch_first=True, padding_value=0.0, max_len=128):
+    out_dims = (len(sequences), max_len)
+    out_tensor = sequences[0].data.new(*out_dims).fill_(padding_value)
+    for i, tensor in enumerate(sequences):
+        length = tensor.size(0)
+        # length = max_len
+        # use index notation to prevent duplicate references to the tensor
+        if batch_first:
+            out_tensor[i, :length, ...] = tensor
+        else:
+            out_tensor[:length, i, ...] = tensor
+    return out_tensor
+
+def create_mini_batch(samples):
+    tokens_tensors = [s[0] for s in samples]
+    segments_tensors = [s[1] for s in samples]
+    lengths_tensors = torch.stack([s[2] for s in samples])
+    # 測試集有 labels
+    if samples[0][3] is not None:
+        label_ids = torch.stack([s[3] for s in samples])
+    else:
+        label_ids = None
+
+    
+    
+    # zero pad 到同一序列長度
+    tokens_tensors = my_pad_sequence(tokens_tensors, 
+                                  batch_first=True)
+    # print('token', tokens_tensors.shape)
+    segments_tensors = my_pad_sequence(segments_tensors, 
+                                    batch_first=True)
+    
+    # attention masks，將 tokens_tensors 裡頭不為 zero padding
+    # 的位置設為 1 讓 BERT 只關注這些位置的 tokens
+    masks_tensors = torch.zeros(tokens_tensors.shape, 
+                                dtype=torch.long)
+    masks_tensors = masks_tensors.masked_fill(
+        tokens_tensors != 0, 1)
+    return tokens_tensors, segments_tensors, masks_tensors, lengths_tensors, label_ids
+
+def compute_performance(y_true, y_pred, labels=None):
+    # accuracy
+    acc = accuracy_score(y_true, y_pred)
+    print("Accuracy: ", '%.4f'%acc)
+    # precision
+    pre = precision_score(y_true, y_pred, average=None, labels=labels)
+    result = []
+    print("Precision......")
+    for label in labels:
+        print(f"Class {label}: {round(pre[label], 3)} ")
+        result += [round(pre[label], 3)]
+    print(result)
+    # recall
+    rc = recall_score(y_true, y_pred, average=None, labels=labels)
+    result = []
+    print("Recall......")
+    for label in labels:
+        print(f"Class {label}: {round(rc[label], 3)} ")
+        result += [round(rc[label], 3)]
+    print(result)
+    # F1-Score
+    print("F1-Score......")
+    f1 = f1_score(y_true, y_pred, average=None, labels=labels)
+    result = []
+    for label in labels:
+        print(f"Class {label}: {round(f1[label], 3)} ")
+        result += [round(f1[label], 3)]
+    print(result)
+    # confusion matrix
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+    print("Confusion matrix......")
+    print(cm)
+
 def output_to_list(content, content_list):
     '''
     Purpose...
@@ -220,13 +362,13 @@ def txt_to_clean(input_txt, clean_path=None, textmode=False):
 
 ########################################################################################################################
 from transformers import BertTokenizer
+PRETRAINED_MODEL_NAME = "bert-base-chinese"
+tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)
 def clean_to_seg_by_tokenizer(input_txt, seg_path=None, textmode=False):
-    PRETRAINED_MODEL_NAME = "bert-base-chinese"
-    tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)
     word_pieces = ["[CLS]"]
-    tokens_text = tokenizer(input_txt)
+    tokens_text = tokenizer.tokenize(input_txt)
     word_pieces += tokens_text + ["[SEP]"]
-    ids = tokenizer.convert_tokens_to_ids(word_pieces)
+    ids = np.array(tokenizer.convert_tokens_to_ids(word_pieces))
     return ids
 
 
