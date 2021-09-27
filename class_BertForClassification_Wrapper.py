@@ -6,19 +6,208 @@ from sklearn.model_selection import train_test_split
 from pandas import Series,DataFrame
 from transformers import AdamW, get_linear_schedule_with_warmup
 import time
+from matplotlib import pyplot as plt
 
 class Bert_Wrapper():
-    def __init__(self, num_labels=2):
-        self.seed = 1234
+    def __init__(self, num_labels=2, seed=1234):
+        self.seed = seed
         self.device = setup_device()
         seed_torch(seed=self.seed)
         self.MAX_LENGTH = 128
         self.NUM_LABELS = num_labels
         self.BATCH_SIZE = 64
-        self.EPOCHS = 3
+        self.EPOCHS = 6
         self.PRETRAINED_MODEL_NAME = "bert-base-chinese"
         return
+        
+    # TODO: Murphy prepare dataloader 這邊重複的 code 太多，需要 refactor
+    # TODO: Murphy 修改 dataframe 的切法讓他支援 split for class
+    def prepare_criminal_sentiment_analysis_dataloader(self, df):
+        target_features = ['有利', '不利', '中性']
+        advantage_list=[]
+        disadvantage_list=[]
+        neutral_list=[]
 
+        # TODO: Murphy 用 outputToList 來重構
+        for index, row in df.iterrows():
+            if row['程度'] == target_features[0]:
+                advantage_list.append(row['Sentence'])
+            elif row['程度'] == target_features[1]:
+                disadvantage_list.append(row['Sentence'])
+            else:
+                neutral_list.append(row['Sentence'])
+
+        advantage_list_shuffled = shuffle(advantage_list, random_state=self.seed)
+        disadvantage_list_shuffled = shuffle(disadvantage_list, random_state=self.seed)
+        neutral_list_shuffled = shuffle(neutral_list, random_state=self.seed)
+
+        print("advantage training number:", len(advantage_list_shuffled))
+        print("disadvantage training number:", len(disadvantage_list_shuffled))
+        print("neutral training number:", len(neutral_list_shuffled))
+
+        if self.NUM_LABELS == 2:
+            # 不利標為0
+            y0 = [0]*len(disadvantage_list)
+            # 有利標為1
+            y1 = [1]*len(advantage_list)
+            # 二分類
+            y = y0+y1
+            X = disadvantage_list + advantage_list
+        elif self.NUM_LABELS == 3:
+             # 不利標為0
+            y0 = [0]*len(disadvantage_list)
+            # 有利標為1
+            y1 = [1]*len(advantage_list)
+            # 中性標為2
+            y2 = [2]*len(neutral_list)
+            # 三分類
+            y = y0+y1+y2
+            X = disadvantage_list + advantage_list + neutral_list
+
+        else:
+            print('Number of labels seems wrong!')
+            return
+
+        df_clean = pd.DataFrame({'y':y,'X':X})
+        df_clean = df_clean[~(df_clean.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)]
+        X, y = df_clean['X'], df_clean['y']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=self.seed)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=self.seed)
+        X_train.reset_index(drop=True, inplace=True)
+        X_valid.reset_index(drop=True, inplace=True)
+        X_test.reset_index(drop=True, inplace=True)
+        y_train.reset_index(drop=True, inplace=True)
+        y_valid.reset_index(drop=True, inplace=True)
+        y_test.reset_index(drop=True, inplace=True)
+
+        train_data = {
+            'label': y_train,
+            'text': X_train
+        }
+        train_df = DataFrame(train_data)
+        train_df.to_csv('./data/cleaned/train.csv', index=False)
+        train_df.to_pickle('./data/cleaned/train.pkl')
+        valid_data = {
+            'label': y_valid,
+            'text': X_valid
+        }
+        valid_df = DataFrame(valid_data)
+        valid_df.to_csv('./data/cleaned/valid.csv', index=False)
+        valid_df.to_pickle('./data/cleaned/valid.pkl')
+        test_data = {
+            'label': y_test,
+            'text': X_test
+        }
+        test_df = DataFrame(test_data)
+        test_df.to_csv('./data/cleaned/test.csv', index=False)
+        test_df.to_pickle('./data/cleaned/test.pkl')
+
+        trainset = SentenceDataset("train")
+        validset = SentenceDataset("valid")
+        testset = SentenceDataset("test")
+
+        self.trainloader = DataLoader(trainset, batch_size=self.BATCH_SIZE, 
+                         collate_fn=create_mini_batch)
+        self.validloader = DataLoader(validset, batch_size=self.BATCH_SIZE, 
+                                collate_fn=create_mini_batch)
+        self.testloader = DataLoader(testset, batch_size=256, 
+                                collate_fn=create_mini_batch)
+
+        return self.trainloader, self.validloader, self.testloader
+
+    def prepare_custody_judgement_factor_dataloader(self, df, df_neu, target_features = ["親子感情", "意願能力", "父母經濟"]):
+        all_features = ["親子感情", "意願能力", "主要照顧", "父母生活", "子女年齡", "子女意願",  "支持系統", "父母經濟"]
+        neutral_column = df_neu.columns[df_neu.columns.to_series().str.contains('neutral')].tolist()
+        neutral_list=[]
+        # For neutral sentence
+        df_neu.loc[:,neutral_column].apply(output_to_list, content_list=neutral_list)
+        # TODO: Murphy 這邊需要更 flexible 一點
+        class0_list = []
+        class1_list = []
+        class2_list = []
+
+        # TODO: Murphy 可用學長的 outputToList 來重構
+        for idx, feature in enumerate(target_features):
+            for index, row in df.iterrows():
+                text = row["Text"]
+                if row[feature] == 1 and row['COUNT'] == 1:
+                    if idx == 0:
+                        class0_list.append(text)
+                    elif idx == 1:
+                        class1_list.append(text)
+                    else:
+                        class2_list.append(text)
+        class0_list_shuffled = shuffle(class0_list, random_state=self.seed)
+        class1_list_shuffled = shuffle(class1_list, random_state=self.seed)
+        class2_list_shuffled = shuffle(class2_list, random_state=self.seed)
+        # [:len(target_list_shuffled)*2]
+        # reduced training neutral sentence
+        # n_neutral_samples = int((len(target_list_shuffled)+len(none_target_list_shuffled))/3)
+        # neutral_list_shuffled = shuffle(neutral_list, random_state=1234)[:n_neutral_samples]
+
+        print("class0 training number:", len(class0_list_shuffled))
+        print("class1 training number:", len(class1_list_shuffled))
+        print("class2 training number:", len(class2_list_shuffled))
+
+
+        # %%
+        # Encode label
+        y0 = [0]*(len(class0_list_shuffled))
+        y1 = [1]*len(class1_list_shuffled)
+        y2 = [2]*(len(class2_list_shuffled))
+
+        y = y0+y1+y2
+        X = class0_list_shuffled + class1_list_shuffled + class2_list_shuffled
+
+        df_clean = pd.DataFrame({'y':y,'X':X})
+        df_clean = df_clean[~(df_clean.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)]
+        X, y = df_clean['X'], df_clean['y']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=self.seed)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=self.seed)
+        X_train.reset_index(drop=True, inplace=True)
+        X_valid.reset_index(drop=True, inplace=True)
+        X_test.reset_index(drop=True, inplace=True)
+        y_train.reset_index(drop=True, inplace=True)
+        y_valid.reset_index(drop=True, inplace=True)
+        y_test.reset_index(drop=True, inplace=True)
+
+        train_data = {
+            'label': y_train,
+            'text': X_train
+        }
+        train_df = DataFrame(train_data)
+        train_df.to_csv('./data/cleaned/train.csv', index=False)
+        train_df.to_pickle('./data/cleaned/train.pkl')
+        valid_data = {
+            'label': y_valid,
+            'text': X_valid
+        }
+        valid_df = DataFrame(valid_data)
+        valid_df.to_csv('./data/cleaned/valid.csv', index=False)
+        valid_df.to_pickle('./data/cleaned/valid.pkl')
+        test_data = {
+            'label': y_test,
+            'text': X_test
+        }
+        test_df = DataFrame(test_data)
+        test_df.to_csv('./data/cleaned/test.csv', index=False)
+        test_df.to_pickle('./data/cleaned/test.pkl')
+
+        trainset = SentenceDataset("train")
+        validset = SentenceDataset("valid")
+        testset = SentenceDataset("test")
+
+        self.trainloader = DataLoader(trainset, batch_size=self.BATCH_SIZE, 
+                         collate_fn=create_mini_batch)
+        self.validloader = DataLoader(validset, batch_size=self.BATCH_SIZE, 
+                                collate_fn=create_mini_batch)
+        self.testloader = DataLoader(testset, batch_size=256, 
+                                collate_fn=create_mini_batch)
+
+        return self.trainloader, self.validloader, self.testloader
+
+        
+    
     def prepare_custody_sentiment_analysis_dataloader(self, df, df_neu):
         applicant_advantage_column = df.columns[df.columns.to_series().str.contains('AA')].tolist()
         respondent_advantage_column = df.columns[df.columns.to_series().str.contains('RA')].tolist()
@@ -47,10 +236,6 @@ class Bert_Wrapper():
         print("advantage training number:", len(advantage_list_shuffled))
         print("disadvantage training number:", len(disadvantage_list_shuffled))
         print("neutral training number:", len(neutral_list_shuffled))
-
-        df.loc[:,advantage_column].apply(output_to_list, content_list=advantage_list)
-        df.loc[:,disadvantage_column].apply(output_to_list, content_list=disadvantage_list)
-        df_neu.loc[:,neutral_column].apply(output_to_list, content_list=neutral_list)
 
         if self.NUM_LABELS == 2:
             # 不利標為0
@@ -288,6 +473,7 @@ class Bert_Wrapper():
             )
         return
 
+    # TODO: Murphy 支援在 terminal 上 plot 或是另存下 learning curve
     def plot_learning_curve(self):
         # prepare to plot learning curve
         train_acc_list = []
@@ -301,7 +487,6 @@ class Bert_Wrapper():
             valid_loss_list.append(state['valid_loss'])
         # %%
         # Plot learning curve
-        from matplotlib import pyplot as plt
         plt.style.use('dark_background')
         plt.plot(train_acc_list)
         plt.plot(valid_acc_list)
@@ -321,6 +506,7 @@ class Bert_Wrapper():
         return
 
     def evaluate(self):
+        # TODO: Murphy 需要 output data 數量, 模型 setting 等資訊
         # predictions, attention = get_predictions(model, testloader, output_attention=True)
         predictions = self.get_predictions(self.model, self.testloader, output_attention=False)
         # y_test = pd.read_csv("data/cleaned/" + 'test' + ".csv", dtype=int).fillna("")['label']
@@ -334,13 +520,38 @@ class Bert_Wrapper():
 
 
 if __name__=='__main__':
+    # TODO: Murphy 自動跑 10 次取平均的 script
+
     print('Bert Classification Wrapper...')
-    df = pd.read_pickle('./data/cleaned/judgment_result_seg_bert.pkl')
-    df_neu = pd.read_pickle('./data/cleaned/judgment_result_seg_neu_bert.pkl')
-    bw = Bert_Wrapper()
-    trainloader, validloader, testloader = bw.prepare_custody_sentiment_analysis_dataloader(df, df_neu)
+
+    ############ Classification for custody sentiment analysis #############
+    # df = pd.read_pickle('./data/cleaned/judgment_result_seg_bert.pkl')
+    # df_neu = pd.read_pickle('./data/cleaned/judgment_result_seg_neu_bert.pkl')
+    # bw = Bert_Wrapper(num_labels = 2)
+    # trainloader, validloader, testloader = bw.prepare_custody_sentiment_analysis_dataloader(df, df_neu)
+    # bw.initialize_training()
+    # bw.train()
+    # bw.evaluate()
+    ############ END #############
+
+    ############ Classification for judgement factor #############
+    # df = pd.read_pickle('./data/cleaned/judgment_factor_seg_bert.pkl')
+    # df_neu = pd.read_pickle('./data/cleaned/judgment_factor_seg_neu_bert.pkl')
+    # bw = Bert_Wrapper(num_labels = 3)
+    # trainloader, validloader, testloader = bw.prepare_custody_judgement_factor_dataloader(df, df_neu)
+    # bw.initialize_training()
+    # bw.train()
+    # bw.evaluate()
+    ############ END #############
+
+    ############ Classification for criminal sentiment analysis #############
+    df = pd.read_pickle('./data/cleaned/criminal_sex_seg_bert.pkl')
+    bw = Bert_Wrapper(num_labels = 3)
+    trainloader, validloader, testloader = bw.prepare_criminal_sentiment_analysis_dataloader(df)
     bw.initialize_training()
     bw.train()
     bw.evaluate()
+    ############ END #############
+
 
 

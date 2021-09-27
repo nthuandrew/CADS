@@ -1,7 +1,6 @@
 from module.util import *
 from data.GV import *
-
-
+# %%
 class Segmentation():
     def __init__(self, type='jieba'):
         if type == 'jieba':
@@ -76,8 +75,73 @@ class Segmentation():
         init_jieba(*list(zip(stop_words_path_list, dict_path_list, idf_path_list, userdict_list))[methods_name['dict1']])
         return
                                      
+    def segment_criminal_sentiment_analysis_articles_wrapper(self, df, criminal_type="sex"):
+        df_list = [df]
+        categorical = ['法條','量刑因子', '程度']
+        meta_info = ['TextID']
+
+        df_list2 = []
+
+        for df in df_list:
+            df2 = pd.DataFrame(columns=df.columns)
+            df2[meta_info+categorical] = df[meta_info+categorical]
+            df_list2.append(df2)
+
+        target_columns = ['Sentence']
+        df_output = self._segment_articles(df_list, df_list2, target_columns)[0]
+        display(df_output)
+        df_output.to_csv(f"./data/cleaned/criminal_{criminal_type}_seg_{self.type}.csv", index=False)
+        df_output.to_pickle(f"./data/cleaned/criminal_{criminal_type}_seg_{self.type}.pkl")
+        return df_output
+
+    def segment_custody_judgement_factor_articles_wrapper(self, df, df_neu):
+        df_list = [df]
+        df_list_neu = [df_neu]
+
+        categorical = ['Result','Win','Ans', 'Label', 'COUNT', '親子感情', '意願能力', '父母經濟', '支持系統', '父母生活', '主要照顧',
+       '子女年齡', '人格發展', '父母健康', '父母職業', '子女意願', '友善父母', '父母品行', 'AK','RK','AN','RN']
+        meta_info = ['Index', 'filename', 'ID']
+
+        for df, df2 in zip(df_list,df_list_neu):
+            all_neutral_columns = df2.columns[df2.columns.to_series().str.contains('neutral')].tolist()
+            # TODO: 要改
+            non_neutral_columns = sorted(list( \
+                                    set(list(matplotlib.cbook.flatten(df.columns.tolist()))) - \
+                                    set(all_neutral_columns) - \
+                                    set(categorical) - \
+                                    set(meta_info)))
+
+            print('neutral columns: \n %s \n' % all_neutral_columns)
+            print('non neutral columns: \n %s \n' % non_neutral_columns)
+
+        df_list2 = []
+
+        for df in df_list:
+            df2 = pd.DataFrame(columns=df.columns)
+            df2[meta_info+categorical] = df[meta_info+categorical]
+            df_list2.append(df2)
+
+        df_output = self._segment_articles(df_list, df_list2, non_neutral_columns)[0]
+        print(df_output[non_neutral_columns])
         
-    def segment_articles_wrapper(self, df, df_neu):
+        df_list2_neu = []
+
+        for df in df_list_neu:
+            df2 = pd.DataFrame(columns=df.columns)
+            df2['ID'] = df['ID']
+            df_list2_neu.append(df2)
+        df_neu_output = self._segment_articles(df_list_neu, df_list2_neu, all_neutral_columns)[0]
+
+        display(df_output)
+        display(df_neu_output)
+        df_output.to_csv(f"./data/cleaned/judgment_factor_seg_{self.type}.csv", index=False)
+        df_neu_output.to_csv(f"./data/cleaned/judgment_factor_seg_neu_{self.type}.csv", index=False)
+        df_output.to_pickle(f"./data/cleaned/judgment_factor_seg_{self.type}.pkl")
+        df_neu_output.to_pickle(f"./data/cleaned/judgment_factor_seg_neu_{self.type}.pkl")
+        return df_output, df_neu_output
+        
+
+    def segment_custody_sentiment_analysis_articles_wrapper(self, df, df_neu):
         '''
         Purpose...
         :param 
@@ -151,8 +215,25 @@ class Segmentation():
 
 
 if __name__=='__main__':
-    df = pd.read_csv('./data/cleaned/judgement_result_onehot.csv')
-    df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')
+    ############ Segment judgement for sentiment analysis #############
+    # df = pd.read_csv('./data/cleaned/judgement_result_onehot.csv')
+    # df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')
+    # seg = Segmentation(type="bert")
+    # df_output, df_neu_output = seg.segment_custody_sentiment_analysis_articles_wrapper(df, df_neu)
+    ############ END #############
+
+    ############ Segment jugement factor for factor classification #############
+    # df = pd.read_excel('data/raw/data_features.xlsx')
+    # df_neu = pd.read_csv('./data/cleaned/judgement_result_neu.csv')
+    # seg = Segmentation(type="bert")
+    # df_output, df_neu_output = seg.segment_custody_judgement_factor_articles_wrapper(df, df_neu)
+    ############ END #############
+
+    ############ Segment criminal for sentiment analysis #############
+    df = pd.read_excel('data/raw/data_criminal_sex.xlsx')
     seg = Segmentation(type="bert")
-    df_output, df_neu_output = seg.segment_articles_wrapper(df, df_neu)
+    df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df)
+     ############ END #############
+
+
 

@@ -143,8 +143,11 @@ class Data_Cleaner():
 
 
 if __name__=='__main__':
-    # clean judgements
+    # clean custody judgements for sentiment analysis
     df = pd.read_csv('./data/raw/labels_full.csv')
     df_neu = pd.read_csv('./data/raw/neutral_sentences.csv')
     clean = Data_Cleaner()
     df = clean.nlp_custody_judgment(df, df_neu)
+
+    # clean custody judgements factor for factor classification
+    # None
