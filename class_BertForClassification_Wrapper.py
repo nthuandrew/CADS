@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 
 class Bert_Wrapper():
     def __init__(self, num_labels=2, seed=1234):
+        self.info_dict = {'Model Name': 'BERT'}
         self.seed = seed
         self.device = setup_device()
         seed_torch(seed=self.seed)
@@ -150,7 +151,6 @@ class Bert_Wrapper():
         print("class2 training number:", len(class2_list_shuffled))
 
 
-        # %%
         # Encode label
         y0 = [0]*(len(class0_list_shuffled))
         y1 = [1]*len(class1_list_shuffled)
@@ -207,7 +207,7 @@ class Bert_Wrapper():
         return self.trainloader, self.validloader, self.testloader
 
         
-    
+    # TODO: Murphy balance_y
     def prepare_custody_sentiment_analysis_dataloader(self, df, df_neu):
         applicant_advantage_column = df.columns[df.columns.to_series().str.contains('AA')].tolist()
         respondent_advantage_column = df.columns[df.columns.to_series().str.contains('RA')].tolist()
@@ -230,6 +230,7 @@ class Bert_Wrapper():
         advantage_list_shuffled = shuffle(advantage_list, random_state=self.seed)
         disadvantage_list_shuffled = shuffle(disadvantage_list, random_state=self.seed)
         # reduced training neutral sentence
+        # TODO: Murphy what is this part about?
         n_neutral_samples = int((len(advantage_list_shuffled)+len(disadvantage_list_shuffled))/2)
         neutral_list_shuffled = shuffle(neutral_list, random_state=self.seed)[:n_neutral_samples]
 
@@ -237,6 +238,9 @@ class Bert_Wrapper():
         print("disadvantage training number:", len(disadvantage_list_shuffled))
         print("neutral training number:", len(neutral_list_shuffled))
 
+        # TODO: Murphy equaly split y & X, i.e. line 241 to 277
+        # ex. loop through (y0, disadvantage_list), (y1, advantage_list)... with train_test_split()
+        #     and then append() dfs and reset_index().
         if self.NUM_LABELS == 2:
             # 不利標為0
             y0 = [0]*len(disadvantage_list)
