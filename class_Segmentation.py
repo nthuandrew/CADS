@@ -75,9 +75,9 @@ class Segmentation():
         init_jieba(*list(zip(stop_words_path_list, dict_path_list, idf_path_list, userdict_list))[methods_name['dict1']])
         return
                                      
-    def segment_criminal_sentiment_analysis_articles_wrapper(self, df, criminal_type="sex"):
+    def segment_criminal_sentiment_analysis_articles_wrapper(self, df, categorical_info, criminal_type="sex"):
         df_list = [df]
-        categorical = ['法條','量刑因子', '程度']
+        categorical = categorical_info
         meta_info = ['TextID']
 
         df_list2 = []
@@ -230,11 +230,18 @@ if __name__=='__main__':
     ############ END #############
 
     ############ Segment criminal for sentiment analysis #############
-    criminal_type="gun"
+    criminal_type="sex"
     df = pd.read_excel(f'data/raw/data_criminal_{criminal_type}.xlsx')
     seg = Segmentation(type="bert")
-    df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df, criminal_type=criminal_type)
+    # For sex
+    categorical_info = ['法條', '犯罪後之態度', '犯罪之手段與所生損害', '被害人的態度',
+       '被告之品行', '其他審酌事項', '有利', '中性', '不利']
+    # For gun
+    # For drug
+    df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df, categorical_info, criminal_type=criminal_type)
      ############ END #############
+# %%
 
 
 
+# %%

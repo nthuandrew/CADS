@@ -22,11 +22,10 @@ class Bert_Wrapper():
         return
 
     def prepare_criminal_judgement_factor_dataloader(self, df, target_feature):
-        class_obj = '量刑因子'
         target_list = []
         other_list = []
         for index, row in df.iterrows():
-            if row[class_obj] == target_feature:
+            if row[target_feature] == True:
                 target_list.append(row['Sentence'])
             else:
                 other_list.append(row['Sentence'])
@@ -109,12 +108,15 @@ class Bert_Wrapper():
 
         # TODO: Murphy 用 outputToList 來重構
         for index, row in df.iterrows():
-            if row[class_obj] == target_features[0]:
+            if row[target_features[0]] == True:
                 advantage_list.append(row['Sentence'])
-            elif row[class_obj] == target_features[1]:
+            elif row[target_features[1]] == True:
                 disadvantage_list.append(row['Sentence'])
-            else:
+            elif row[target_features[2]] == True:
                 neutral_list.append(row['Sentence'])
+            else:
+                print('Sentiment labeled wrong!')
+                return
 
         advantage_list_shuffled = shuffle(advantage_list, random_state=self.seed)
         disadvantage_list_shuffled = shuffle(disadvantage_list, random_state=self.seed)
@@ -633,26 +635,31 @@ if __name__=='__main__':
     ############ END #############
 
     ############ Classification for criminal sentiment analysis #############
-    # criminal_type="sex"
-    # seed_list = [1234, 5678, 7693145, 947, 13, 27, 1, 5, 9, 277]
-    # df = pd.read_pickle(f'./data/cleaned/criminal_{criminal_type}_seg_bert.pkl')
+    criminal_type="sex"
+    seed_list = [1234, 5678, 7693145, 947, 13, 27, 1, 5, 9, 277]
+    df = pd.read_pickle(f'./data/cleaned/criminal_{criminal_type}_seg_bert.pkl')
     # for i in range(10):
     #     print("Start test:", )
-    #     bw = Bert_Wrapper(num_labels = 3, seed = seed_list[i])
+    #     bw = Bert_Wrapper(num_labels = 3, seed = seed_list[])
     #     trainloader, validloader, testloader = bw.prepare_criminal_sentiment_analysis_dataloader(df)
     #     bw.initialize_training()
     #     bw.train()
     #     bw.evaluate(path=f"{criminal_type}.txt")
-    ############ END #############
-
-    ############ Classification for criminal factor classification #############
-    criminal_type="drug"
-    df = pd.read_pickle(f'./data/cleaned/criminal_{criminal_type}_seg_bert.pkl')
-    bw = Bert_Wrapper(num_labels = 2)
-    trainloader, validloader, testloader = bw.prepare_criminal_judgement_factor_dataloader(df, '犯後態度')
+    bw = Bert_Wrapper(num_labels = 3, seed = seed_list[0])
+    trainloader, validloader, testloader = bw.prepare_criminal_sentiment_analysis_dataloader(df)
     bw.initialize_training()
     bw.train()
     bw.evaluate(path=f"{criminal_type}.txt")
+    ############ END #############
+
+    ############ Classification for criminal factor classification #############
+    # criminal_type="sex"
+    # df = pd.read_pickle(f'./data/cleaned/criminal_{criminal_type}_seg_bert.pkl')
+    # bw = Bert_Wrapper(num_labels = 2)
+    # trainloader, validloader, testloader = bw.prepare_criminal_judgement_factor_dataloader(df, '犯罪後之態度')
+    # bw.initialize_training()
+    # bw.train()
+    # bw.evaluate(path=f"{criminal_type}.txt")
     ############ END #############
     # %%
     
