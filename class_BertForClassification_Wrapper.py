@@ -381,8 +381,8 @@ class Bert_Wrapper():
                         )
         ################# Method 1 ######################
         # gradient_accumulation_steps = 1
-        # # total_steps = len(trainloader) * EPOCHS
-        # t_total = int(len(trainloader) / gradient_accumulation_steps * EPOCHS)
+        # # total_steps = len(self.trainloader) * EPOCHS
+        # t_total = int(len(self.trainloader) / gradient_accumulation_steps * EPOCHS)
 
         # # Create the learning rate scheduler.
         # scheduler = get_linear_schedule_with_warmup(optimizer, 
@@ -402,7 +402,7 @@ class Bert_Wrapper():
             t0 = time.time()
             self.model.train()
             running_train_loss = 0.0
-            for data in trainloader:
+            for data in self.trainloader:
                 
                 tokens_tensors, segments_tensors, \
                 masks_tensors, lengths_tensors, labels = [t.to(self.device) for t in data]
@@ -429,8 +429,8 @@ class Bert_Wrapper():
                 running_train_loss += loss.item()
                 
             # 計算分類準確率
-            _, train_acc = self.get_predictions(self.model, trainloader, compute_acc=True)
-            avg_running_train_loss = running_train_loss / len(trainloader)
+            _, train_acc = self.get_predictions(self.model, self.trainloader, compute_acc=True)
+            avg_running_train_loss = running_train_loss / len(self.trainloader)
             training_time = format_time(time.time() - t0)
             print('Train>>>[epoch %d] loss: %.3f, acc: %.3f' %
                 (epoch + 1, avg_running_train_loss, train_acc))
@@ -445,7 +445,7 @@ class Bert_Wrapper():
             t0 = time.time()
             self.model.eval()
             running_valid_loss = 0.0
-            for data in validloader:
+            for data in self.validloader:
                 tokens_tensors, segments_tensors, \
                 masks_tensors, lengths_tensors, labels, = [t.to(self.device) for t in data]
                 with torch.no_grad():   
@@ -457,8 +457,8 @@ class Bert_Wrapper():
                     loss = outputs[0]
                     running_valid_loss += loss.item()
 
-            _, valid_acc = self.get_predictions(self.model, validloader, compute_acc=True)
-            avg_running_valid_loss = running_valid_loss / len(validloader)
+            _, valid_acc = self.get_predictions(self.model, self.validloader, compute_acc=True)
+            avg_running_valid_loss = running_valid_loss / len(self.validloader)
             validation_time = format_time(time.time() - t0)
             print('Valid>>>[epoch %d] loss: %.3f, acc: %.3f' %
                 (epoch + 1, avg_running_valid_loss, valid_acc))
