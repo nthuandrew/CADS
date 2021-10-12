@@ -14,6 +14,7 @@ from importlib import import_module, reload
 import torch
 import random
 import datetime
+from contextlib import redirect_stdout
 from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix, f1_score
 
@@ -123,38 +124,43 @@ def create_mini_batch(samples):
         tokens_tensors != 0, 1)
     return tokens_tensors, segments_tensors, masks_tensors, lengths_tensors, label_ids
 
-def compute_performance(y_true, y_pred, labels=None):
-    # accuracy
-    acc = accuracy_score(y_true, y_pred)
-    print("Accuracy: ", '%.4f'%acc)
-    # precision
-    pre = precision_score(y_true, y_pred, average=None, labels=labels)
-    result = []
-    print("Precision......")
-    for label in labels:
-        print(f"Class {label}: {round(pre[label], 3)} ")
-        result += [round(pre[label], 3)]
-    print(result)
-    # recall
-    rc = recall_score(y_true, y_pred, average=None, labels=labels)
-    result = []
-    print("Recall......")
-    for label in labels:
-        print(f"Class {label}: {round(rc[label], 3)} ")
-        result += [round(rc[label], 3)]
-    print(result)
-    # F1-Score
-    print("F1-Score......")
-    f1 = f1_score(y_true, y_pred, average=None, labels=labels)
-    result = []
-    for label in labels:
-        print(f"Class {label}: {round(f1[label], 3)} ")
-        result += [round(f1[label], 3)]
-    print(result)
-    # confusion matrix
-    cm = confusion_matrix(y_true, y_pred, labels=labels)
-    print("Confusion matrix......")
-    print(cm)
+# TODO: Murphy 把計算實驗結果和 logging 拆開來
+def compute_performance(y_true, y_pred, labels=None, path=""):
+    if len(path) > 0:
+        with open(path, 'a') as f:
+            with redirect_stdout(f):
+                print(path)
+                # accuracy
+                acc = accuracy_score(y_true, y_pred)
+                print("Accuracy: ", '%.4f'%acc)
+                # precision
+                pre = precision_score(y_true, y_pred, average=None, labels=labels)
+                result = []
+                print("Precision......")
+                for label in labels:
+                    print(f"Class {label}: {round(pre[label], 3)} ")
+                    result += [round(pre[label], 3)]
+                print(result)
+                # recall
+                rc = recall_score(y_true, y_pred, average=None, labels=labels)
+                result = []
+                print("Recall......")
+                for label in labels:
+                    print(f"Class {label}: {round(rc[label], 3)} ")
+                    result += [round(rc[label], 3)]
+                print(result)
+                # F1-Score
+                print("F1-Score......")
+                f1 = f1_score(y_true, y_pred, average=None, labels=labels)
+                result = []
+                for label in labels:
+                    print(f"Class {label}: {round(f1[label], 3)} ")
+                    result += [round(f1[label], 3)]
+                print(result)
+                # confusion matrix
+                cm = confusion_matrix(y_true, y_pred, labels=labels)
+                print("Confusion matrix......")
+                print(cm)
 
 def output_to_list(content, content_list):
     '''

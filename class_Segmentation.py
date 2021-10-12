@@ -230,9 +230,10 @@ if __name__=='__main__':
     ############ END #############
 
     ############ Segment criminal for sentiment analysis #############
-    df = pd.read_excel('data/raw/data_criminal_sex.xlsx')
+    criminal_type="gun"
+    df = pd.read_excel(f'data/raw/data_criminal_{criminal_type}.xlsx')
     seg = Segmentation(type="bert")
-    df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df)
+    df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df, criminal_type=criminal_type)
      ############ END #############
 
 
