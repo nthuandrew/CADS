@@ -64,8 +64,8 @@ elif model_setting['mode'] == 'pred_factor':
     df = pd.read_pickle(f'./data/cleaned/criminal_%s_seg_bert.pkl' % model_setting['train_data'])
     df_pred = pd.read_pickle('./data/cleaned/criminal_%s_seg_bert.pkl' % model_setting['pred_data'])
     for fac in model_setting['factor_lst']:
-        model_name = 'bert_%s_%s' % (model_setting['train_data'], fac)
-        bw = Bert_Wrapper(model_name=model_name, num_labels = 2)
+        m_name = 'bert_%s_%s' % (model_setting['train_data'], fac)
+        bw = Bert_Wrapper(save_model_name=m_name, num_labels = 2)
         trainloader, validloader, testloader = bw.prepare_criminal_judgement_factor_dataloader(df, fac)
         bw.initialize_training()
         bw.train()

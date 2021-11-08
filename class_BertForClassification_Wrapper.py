@@ -11,10 +11,8 @@ import time
 from matplotlib import pyplot as plt
 
 class Bert_Wrapper():
-    def __init__(self, model_name=None, num_labels=2, seed=1234):
-        if model_name is None:
-            model_name = 'bert'
-        self.info_dict = {'model_name': model_name, 'hyper_param':{},'accuracy':None, 'precision':None, 'recall':None, 'f1':None, 'comfusion_matrix':None}
+    def __init__(self, save_model_name=None, num_labels=2, seed=1234):
+        self.info_dict = {'save_model_name': save_model_name, 'hyper_param':{},'accuracy':None, 'precision':None, 'recall':None, 'f1':None, 'comfusion_matrix':None}
         self.info_dict['hyper_param']['seed'] = self.seed = seed
         self.device = setup_device()
         seed_torch(seed=self.seed)
@@ -572,13 +570,17 @@ class Bert_Wrapper():
         '''
         Train model with/without trainning data? # TODO: csu ask Murphy
         '''
-        fname = './data/model/%s.pkl' % self.info_dict['model_name']
-        if os.path.exists(fname):   # import exist model
-            with open(fname, "rb") as file:
-                info_dict, model = pickle.load(file)
-            # if info_dict['hyper_param'] == self.info_dict['hyper_param']:   # check if hyper_params are the same
-                self.info_dict = info_dict
-                self.model = model
+        fname = './data/model/%s.pkl' % self.info_dict['save_model_name']   # get the exit model path
+        # import the exist model
+        if self.info_dict['save_model_name'] is not None:
+            if os.path.exists(fname):
+                with open(fname, "rb") as file:
+                    info_dict, model = pickle.load(file)
+                # if info_dict['hyper_param'] == self.info_dict['hyper_param']:   # check if hyper_params are the same
+                    self.info_dict = info_dict
+                    self.model = model
+        
+        # train a new model
         else:
             for epoch in range(self.EPOCHS):
                 print("")
@@ -660,8 +662,10 @@ class Bert_Wrapper():
                     }
                 )
             
-            with open(fname, "wb") as file: # save model
-                pickle.dump([self.info_dict, self.model], file=file)
+            # save model
+            if self.info_dict['save_model_name'] is not None:
+                with open(fname, "wb") as file: # save model
+                    pickle.dump([self.info_dict, self.model], file=file)
             
         return
 
