@@ -3,6 +3,7 @@ from class_Segmentation import Segmentation
 from class_BertForClassification_Wrapper import Bert_Wrapper
 
 
+
 # model_setting = {'mode': 'train_sentence', 'train_data': 'gun'}
 # model_setting = {'mode': 'train_factor', 'train_data': 'gun', 'factor_lst': ['犯罪後之態度', '犯罪所生之危險或違反義務之程度', '被告之品行', '其他審酌事項']}
 model_setting = {'mode': 'pred_factor', 'train_data': 'gun', 'pred_data':'全文標註的測試句', 'factor_lst': ['犯罪後之態度', '犯罪所生之危險或違反義務之程度', '被告之品行', '其他審酌事項']}
