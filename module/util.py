@@ -3,6 +3,7 @@ import os
 import re
 import gc
 import sys
+import pickle
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -54,9 +55,9 @@ def format_time(elapsed):
     return str(datetime.timedelta(seconds=elapsed_rounded))
 
 class SentenceDataset(Dataset):
-    # 讀取前處理後的 tsv 檔並初始化一些參數
+    # 讀取前處理後的 csv 檔並初始化一些參數
     def __init__(self, mode):
-        assert mode in ["train", "test", "valid"]  # 一般訓練你會需要 dev set
+        assert mode in ["train", "test", "valid", "pred"]  # 一般訓練你會需要 dev set
         self.mode = mode
         # 大數據你會需要用 iterator=True
         # self.df = pd.read_csv("data/cleaned/" + mode + ".csv").fillna("")
@@ -65,12 +66,12 @@ class SentenceDataset(Dataset):
     
     # 定義回傳一筆訓練 / 測試數據的函式
     def __getitem__(self, idx):
-        if self.mode == "test":
-            ids = self.df.iloc[idx, 1]
+        if any([self.mode == "test", self.mode == "pred"]):
+            ids = self.df.iloc[idx, 1]  # get X
             label_tensor = None
             length = len(self.df.iloc[idx, 1])
         else:
-            label, ids = self.df.iloc[idx, :].values
+            label, ids = self.df.iloc[idx, :].values    # get y & X
             # 將 label 文字也轉換成索引方便轉換成 tensor
             label_id = label
             label_tensor = torch.tensor(label_id)

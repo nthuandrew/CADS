@@ -1,4 +1,5 @@
-# %%
+from pandas.io.pickle import read_pickle
+from torch.utils.data import dataloader
 from module.util import *
 from class_BertForClassification_Model import BertForClassification
 from data.GV import *
@@ -11,114 +12,153 @@ import math
 from matplotlib import pyplot as plt
 # %%
 class Bert_Wrapper():
-    def __init__(self, num_labels=2, seed=1234):
-        self.info_dict = {
-            'Model Name': 'BERT',
-            "Performance": {
-                "Acc": [],
-                "Precision": [],
-                "Recall": [],
-                "F1-score": [],
-                "Confusion-Matrix": []
-            }
-            }
-        self.seed = seed
+    def __init__(self, save_model_name=None, num_labels=2, seed=1234):
+        self.info_dict = {'save_model_name': save_model_name, 'hyper_param':{},'accuracy':None, 'precision':None, 'recall':None, 'f1':None, 'comfusion_matrix':None}
+        self.info_dict['hyper_param']['seed'] = self.seed = seed
         self.device = setup_device()
         seed_torch(seed=self.seed)
-        self.MAX_LENGTH = 128
-        self.NUM_LABELS = num_labels
-        self.BATCH_SIZE = 64
-        self.EPOCHS = 6
-        self.PRETRAINED_MODEL_NAME = "bert-base-chinese"
+        self.info_dict['hyper_param']['MAX_LENGTH'] = self.MAX_LENGTH = 128
+        self.info_dict['hyper_param']['NUM_LABELS'] = self.NUM_LABELS = num_labels
+        self.info_dict['hyper_param']['BATCH_SIZE'] = self.BATCH_SIZE = 64
+        self.info_dict['hyper_param']['EPOCHS'] = self.EPOCHS = 2
+        self.info_dict['hyper_param']['PRETRAINED_MODEL_NAME'] = self.PRETRAINED_MODEL_NAME = "bert-base-chinese"
         return
     
-    def add_performance(self, acc, pre, rc, f1, cm):
-        self.info_dict['Performance']['Acc'].append(acc)
-        self.info_dict['Performance']['Precision'].append(pre)
-        self.info_dict['Performance']['Recall'].append(rc)
-        self.info_dict['Performance']['F1-score'].append(f1)
-        self.info_dict['Performance']['Confusion-Matrix'].append(cm)
+    # def add_performance(self, acc, pre, rc, f1, cm):
+    #     self.info_dict['Performance']['Acc'].append(acc)
+    #     self.info_dict['Performance']['Precision'].append(pre)
+    #     self.info_dict['Performance']['Recall'].append(rc)
+    #     self.info_dict['Performance']['F1-score'].append(f1)
+    #     self.info_dict['Performance']['Confusion-Matrix'].append(cm)
 
-    def prepare_criminal_judgement_factor_dataloader(self, df, df_neu, target_feature):
-        target_list = []
-        manul_other_list = []
-        for index, row in df.iterrows():
-            if row[target_feature] == True:
-                target_list.append(row['Sentence'])
+    def prepare_criminal_judgement_factor_dataloader(self, df, df_neu, target_feature, for_prediction=False):
+        if for_prediction is False:
+            target_list = []
+            manul_other_list = []
+            for index, row in df.iterrows():
+                if row[target_feature] == True:
+                    target_list.append(row['Sentence'])
+                else:
+                    manul_other_list.append(row['Sentence'])
+
+            target_list_shuffled = shuffle(target_list, random_state=self.seed)
+            manul_other_list_shuffled = shuffle(manul_other_list, random_state=self.seed)
+            auto_other_list = [i for i in df_neu['Sentence']]
+            auto_other_list_shuffled = shuffle(auto_other_list, random_state=self.seed)[:3000]
+            other_list_shuffled = manul_other_list_shuffled + auto_other_list_shuffled
+
+
+            print("target feature training number:", len(target_list_shuffled))
+            print("manul feature training number:", len(manul_other_list_shuffled))
+            print("auto feature training number:", len(auto_other_list_shuffled))
+            print("other feature training number:", len(other_list_shuffled))
+
+            if self.NUM_LABELS == 2:
+                # 不利標為0
+                y0 = [0]*len(target_list_shuffled)
+                # 有利標為1
+                y1 = [1]*len(other_list_shuffled)
+                # 二分類
+                y = y0+y1
+                X = target_list_shuffled + other_list_shuffled
+
             else:
-                manul_other_list.append(row['Sentence'])
+                print('Number of labels seems wrong!')
+                return
 
-        target_list_shuffled = shuffle(target_list, random_state=self.seed)
-        manul_other_list_shuffled = shuffle(manul_other_list, random_state=self.seed)
-        auto_other_list = [i for i in df_neu['Sentence']]
-        auto_other_list_shuffled = shuffle(auto_other_list, random_state=self.seed)[:3000]
-        other_list_shuffled = manul_other_list_shuffled + auto_other_list_shuffled
+            df_clean = pd.DataFrame({'y':y,'X':X})
+            df_clean = df_clean[~(df_clean.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)] # TODO: csu ask Murph?
+            X, y = df_clean['X'], df_clean['y']
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=self.seed)
+            X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=self.seed)
+            X_train.reset_index(drop=True, inplace=True)
+            X_valid.reset_index(drop=True, inplace=True)
+            X_test.reset_index(drop=True, inplace=True)
+            y_train.reset_index(drop=True, inplace=True)
+            y_valid.reset_index(drop=True, inplace=True)
+            y_test.reset_index(drop=True, inplace=True)
 
+            train_data = {
+                'label': y_train,
+                'text': X_train
+            }
+            train_df = DataFrame(train_data)
+            train_df.to_csv('./data/cleaned/train.csv', index=False)
+            train_df.to_pickle('./data/cleaned/train.pkl')
+            valid_data = {
+                'label': y_valid,
+                'text': X_valid
+            }
+            valid_df = DataFrame(valid_data)
+            valid_df.to_csv('./data/cleaned/valid.csv', index=False)
+            valid_df.to_pickle('./data/cleaned/valid.pkl')
+            test_data = {
+                'label': y_test,
+                'text': X_test
+            }
+            test_df = DataFrame(test_data)
+            test_df.to_csv('./data/cleaned/test.csv', index=False)
+            test_df.to_pickle('./data/cleaned/test.pkl')
 
-        print("target feature training number:", len(target_list_shuffled))
-        print("manul feature training number:", len(manul_other_list_shuffled))
-        print("auto feature training number:", len(auto_other_list_shuffled))
-        print("other feature training number:", len(other_list_shuffled))
+            # 
+            trainset = SentenceDataset("train")
+            validset = SentenceDataset("valid")
+            testset = SentenceDataset("test")
 
-        if self.NUM_LABELS == 2:
-            # 不利標為0
-            y0 = [0]*len(target_list_shuffled)
-            # 有利標為1
-            y1 = [1]*len(other_list_shuffled)
-            # 二分類
-            y = y0+y1
-            X = target_list_shuffled + other_list_shuffled
+            self.trainloader = DataLoader(trainset, batch_size=self.BATCH_SIZE, 
+                            collate_fn=create_mini_batch)
+            self.validloader = DataLoader(validset, batch_size=self.BATCH_SIZE, 
+                                    collate_fn=create_mini_batch)
+            self.testloader = DataLoader(testset, batch_size=256, 
+                                    collate_fn=create_mini_batch)
+            return self.trainloader, self.validloader, self.testloader
 
         else:
-            print('Number of labels seems wrong!')
-            return
+            target_list = []
+            manul_other_list = []
+            for index, row in df.iterrows():
+                if row[target_feature] == True:
+                    target_list.append(row['Sentence'])
+                else:
+                    manul_other_list.append(row['Sentence'])
 
-        df_clean = pd.DataFrame({'y':y,'X':X})
-        df_clean = df_clean[~(df_clean.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)]
-        X, y = df_clean['X'], df_clean['y']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=self.seed)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=self.seed)
-        X_train.reset_index(drop=True, inplace=True)
-        X_valid.reset_index(drop=True, inplace=True)
-        X_test.reset_index(drop=True, inplace=True)
-        y_train.reset_index(drop=True, inplace=True)
-        y_valid.reset_index(drop=True, inplace=True)
-        y_test.reset_index(drop=True, inplace=True)
+            target_list_shuffled = shuffle(target_list, random_state=self.seed)
+            manul_other_list_shuffled = shuffle(manul_other_list, random_state=self.seed)
+            auto_other_list = [i for i in df_neu['Sentence']]
+            auto_other_list_shuffled = shuffle(auto_other_list, random_state=self.seed)[:3000]
+            other_list_shuffled = manul_other_list_shuffled + auto_other_list_shuffled
 
-        train_data = {
-            'label': y_train,
-            'text': X_train
-        }
-        train_df = DataFrame(train_data)
-        train_df.to_csv('./data/cleaned/train.csv', index=False)
-        train_df.to_pickle('./data/cleaned/train.pkl')
-        valid_data = {
-            'label': y_valid,
-            'text': X_valid
-        }
-        valid_df = DataFrame(valid_data)
-        valid_df.to_csv('./data/cleaned/valid.csv', index=False)
-        valid_df.to_pickle('./data/cleaned/valid.pkl')
-        test_data = {
-            'label': y_test,
-            'text': X_test
-        }
-        test_df = DataFrame(test_data)
-        test_df.to_csv('./data/cleaned/test.csv', index=False)
-        test_df.to_pickle('./data/cleaned/test.pkl')
 
-        trainset = SentenceDataset("train")
-        validset = SentenceDataset("valid")
-        testset = SentenceDataset("test")
+            print("target feature training number:", len(target_list_shuffled))
+            print("manul feature training number:", len(manul_other_list_shuffled))
+            print("auto feature training number:", len(auto_other_list_shuffled))
+            print("other feature training number:", len(other_list_shuffled))
 
-        self.trainloader = DataLoader(trainset, batch_size=self.BATCH_SIZE, 
-                         collate_fn=create_mini_batch)
-        self.validloader = DataLoader(validset, batch_size=self.BATCH_SIZE, 
-                                collate_fn=create_mini_batch)
-        self.testloader = DataLoader(testset, batch_size=256, 
-                                collate_fn=create_mini_batch)
+            if self.NUM_LABELS == 2:
+                # 不利標為0
+                y0 = [0]*len(target_list_shuffled)
+                # 有利標為1
+                y1 = [1]*len(other_list_shuffled)
+                # 二分類
+                y = y0+y1
+                X = target_list_shuffled + other_list_shuffled
 
-        return self.trainloader, self.validloader, self.testloader
+            else:
+                print('Number of labels seems wrong!')
+                return
+
+            pred_df = pd.DataFrame({'y':y,'X':X})
+            pred_df = pred_df[~(pred_df.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)] # TODO: csu ask Murph?
+            pred_df = DataFrame(pred_df)
+            pred_df.to_csv('./data/cleaned/pred.csv', index=False)
+            pred_df.to_pickle('./data/cleaned/pred.pkl')
+
+            predset = SentenceDataset("pred")
+
+            self.predloader = DataLoader(predset, batch_size=256, 
+                                    collate_fn=create_mini_batch)
+
+            return self.predloader
 
         
     # TODO: Murphy prepare dataloader 這邊重複的 code 太多，需要 refactor
@@ -426,7 +466,9 @@ class Bert_Wrapper():
 
         return self.trainloader, self.validloader, self.testloader
 
-    def get_predictions(self, model, dataloader, compute_acc=False, output_attention=False):
+
+    def predict(self, dataloader, compute_acc=False, output_attention=False):
+        model = self.model
         predictions = None
         attentions = []
         correct = 0
@@ -434,7 +476,7 @@ class Bert_Wrapper():
         
         with torch.no_grad():
             # 遍巡整個資料集
-            for data in dataloader:
+            for data in dataloader: # batches of data
                 # 將所有 tensors 移到 GPU 上
                 if next(model.parameters()).is_cuda:
                     data = [t.to("cuda:0") for t in data if t is not None]
@@ -448,7 +490,50 @@ class Bert_Wrapper():
                                 attention_mask=masks_tensors,
                                 lengths = lengths_tensors, 
                                 output_attention=output_attention
-                                )
+                                )   # choose output function here: sigmoid -> softmax
+                if output_attention:
+                    logits = outputs[0][0]
+                else:
+                    logits = outputs[0]     # get sigmoid probability
+                
+                pred = F.softmax(logits.data, dim = 1)
+                    
+                # 將當前 batch 記錄下來
+                if predictions is None:
+                    predictions = pred
+                else:
+                    predictions = torch.cat((predictions, pred))
+
+                if output_attention:
+                    attention = outputs[1]
+                    attentions.append(attention)
+
+        return predictions
+
+
+    def get_predictions(self, model, dataloader, compute_acc=False, output_attention=False):
+        predictions = None
+        attentions = []
+        correct = 0
+        total = 0
+        
+        with torch.no_grad():
+            # 遍巡整個資料集
+            for data in dataloader: # cv data
+                # 將所有 tensors 移到 GPU 上
+                if next(model.parameters()).is_cuda:
+                    data = [t.to("cuda:0") for t in data if t is not None]
+                
+                
+                # 別忘記前 3 個 tensors 分別為 tokens, segments 以及 masks
+                # 且強烈建議在將這些 tensors 丟入 `model` 時指定對應的參數名稱
+                tokens_tensors, segments_tensors, masks_tensors, lengths_tensors  = data[:4]
+                outputs = model(input_ids=tokens_tensors, 
+                                token_type_ids=segments_tensors, 
+                                attention_mask=masks_tensors,
+                                lengths = lengths_tensors, 
+                                output_attention=output_attention
+                                )   # choose output function here: sigmoid -> softmax
                 if output_attention:
                     logits = outputs[0][0]
                 else:
@@ -484,6 +569,9 @@ class Bert_Wrapper():
             return predictions
 
     def initialize_training(self):
+        '''
+        Model hyper-parameter setting? #TODO: csu ask Murphy
+        '''
         self.model = BertForClassification.from_pretrained(PRETRAINED_MODEL_NAME, num_labels=self.NUM_LABELS, max_length=self.MAX_LENGTH, device=self.device)
         self.training_stats = []
         self.model.to(self.device)
@@ -515,85 +603,107 @@ class Bert_Wrapper():
                                                     num_warmup_steps = 0, # Default value in run_glue.py
                                                     num_training_steps = total_steps)
     def train(self):
-        for epoch in range(self.EPOCHS):
-            print("")
-            print('Training...')
-            t0 = time.time()
-            self.model.train()
-            running_train_loss = 0.0
-            for data in self.trainloader:
-                
-                tokens_tensors, segments_tensors, \
-                masks_tensors, lengths_tensors, labels = [t.to(self.device) for t in data]
+        '''
+        Train model with/without trainning data? # TODO: csu ask Murphy
+        '''
+        fname = './data/model/%s.pkl' % self.info_dict['save_model_name']   # get the exit model path
+        # import the exist model
+        # Murphy: 這邊即便傳入 save_model_name 但如果 file not exist 的話，就不會跑 train 的流程了
+        if self.info_dict['save_model_name'] is not None:
+            if os.path.exists(fname):
+                with open(fname, "rb") as file:
+                    info_dict, model = pickle.load(file)
+                # if info_dict['hyper_param'] == self.info_dict['hyper_param']:   # check if hyper_params are the same
+                    self.info_dict = info_dict
+                    self.model = model
+        
+        # train a new model
+        else:
+            for epoch in range(self.EPOCHS):
+                print("")
+                print('Training...')
+                t0 = time.time()
+                self.model.train()
+                running_train_loss = 0.0
+                for data in self.trainloader:
+                    
+                    tokens_tensors, segments_tensors, \
+                    masks_tensors, lengths_tensors, labels = [t.to(self.device) for t in data]
 
-                # 將參數梯度歸零
-                self.optimizer.zero_grad()
-                
-                # forward pass
-                outputs = self.model(input_ids=tokens_tensors, 
-                                token_type_ids=segments_tensors, 
-                                attention_mask=masks_tensors, 
-                                lengths = lengths_tensors,
-                                labels=labels)
-                
-                loss = outputs[0]
-                # backward
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-                self.optimizer.step()
-                self.scheduler.step()
-
-
-                # 紀錄當前 batch loss
-                running_train_loss += loss.item()
-                
-            # 計算分類準確率
-            _, train_acc = self.get_predictions(self.model, self.trainloader, compute_acc=True)
-            avg_running_train_loss = running_train_loss / len(self.trainloader)
-            training_time = format_time(time.time() - t0)
-            print('Train>>>[epoch %d] loss: %.3f, acc: %.3f' %
-                (epoch + 1, avg_running_train_loss, train_acc))
-            # ========================================
-            #               Validation
-            # ========================================
-            # After the completion of each training epoch, measure our performance on
-            # our validation set.
-
-            print("")
-            print("Running Validation...")
-            t0 = time.time()
-            self.model.eval()
-            running_valid_loss = 0.0
-            for data in self.validloader:
-                tokens_tensors, segments_tensors, \
-                masks_tensors, lengths_tensors, labels, = [t.to(self.device) for t in data]
-                with torch.no_grad():   
+                    # 將參數梯度歸零
+                    self.optimizer.zero_grad()
+                    
+                    # forward pass
                     outputs = self.model(input_ids=tokens_tensors, 
                                     token_type_ids=segments_tensors, 
                                     attention_mask=masks_tensors, 
-                                    lengths=lengths_tensors,
+                                    lengths = lengths_tensors,
                                     labels=labels)
+                    
                     loss = outputs[0]
-                    running_valid_loss += loss.item()
+                    # backward
+                    loss.backward()
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                    self.optimizer.step()
+                    self.scheduler.step()
 
-            _, valid_acc = self.get_predictions(self.model, self.validloader, compute_acc=True)
-            avg_running_valid_loss = running_valid_loss / len(self.validloader)
-            validation_time = format_time(time.time() - t0)
-            print('Valid>>>[epoch %d] loss: %.3f, acc: %.3f' %
-                (epoch + 1, avg_running_valid_loss, valid_acc))
 
-            # Record all statistics from this epoch.
-            self.training_stats.append(
-                {
-                    'epoch': epoch + 1,
-                    'train_loss': avg_running_train_loss,
-                    'valid_loss': avg_running_valid_loss,
-                    'train_acc': train_acc,
-                    'valid_acc': valid_acc,
-                    'train_time': training_time,
-                    'valid_time': validation_time
-                }
-            )
+                    # 紀錄當前 batch loss
+                    running_train_loss += loss.item()
+                    
+                # 計算分類準確率
+                _, train_acc = self.get_predictions(self.model, self.trainloader, compute_acc=True)
+                avg_running_train_loss = running_train_loss / len(self.trainloader)
+                training_time = format_time(time.time() - t0)
+                print('Train>>>[epoch %d] loss: %.3f, acc: %.3f' %
+                    (epoch + 1, avg_running_train_loss, train_acc))
+                # ========================================
+                #               Validation
+                # ========================================
+                # After the completion of each training epoch, measure our performance on
+                # our validation set.
+
+                print("")
+                print("Running Validation...")
+                t0 = time.time()
+                self.model.eval()
+                running_valid_loss = 0.0
+                for data in self.validloader:
+                    tokens_tensors, segments_tensors, \
+                    masks_tensors, lengths_tensors, labels, = [t.to(self.device) for t in data]
+                    with torch.no_grad():   
+                        outputs = self.model(input_ids=tokens_tensors, 
+                                        token_type_ids=segments_tensors, 
+                                        attention_mask=masks_tensors, 
+                                        lengths=lengths_tensors,
+                                        labels=labels)
+                        loss = outputs[0]
+                        running_valid_loss += loss.item()
+
+                _, valid_acc = self.get_predictions(self.model, self.validloader, compute_acc=True)
+                avg_running_valid_loss = running_valid_loss / len(self.validloader)
+                validation_time = format_time(time.time() - t0)
+                print('Valid>>>[epoch %d] loss: %.3f, acc: %.3f' %
+                    (epoch + 1, avg_running_valid_loss, valid_acc))
+
+                # Record all statistics from this epoch.
+                self.training_stats.append(
+                    {
+                        'epoch': epoch + 1,
+                        'train_loss': avg_running_train_loss,
+                        'valid_loss': avg_running_valid_loss,
+                        'train_acc': train_acc,
+                        'valid_acc': valid_acc,
+                        'train_time': training_time,
+                        'valid_time': validation_time
+                    }
+                )
+            
+            # save model
+            if self.info_dict['save_model_name'] is not None:
+                with open(fname, "wb") as file: # save model
+                    pickle.dump([self.info_dict, self.model], file=file)
+            
         return
 
     # TODO: Murphy 支援在 terminal 上 plot 或是另存下 learning curve

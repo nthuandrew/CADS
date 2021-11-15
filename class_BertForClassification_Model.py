@@ -77,7 +77,7 @@ class BertForClassification(BertPreTrainedModel):
         loss = None
         if labels is not None:
             B = logits.view(-1, self.num_labels).size(0)
-            loss_fct = CrossEntropyLoss()
+            loss_fct = CrossEntropyLoss()   # TODO: csu pytorch sigmoid -> softmax
             loss_ = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
             # AAT = torch.bmm(attention_weights.transpose(1,2), attention_weights).to(device)
             # I = torch.eye(num_hops).unsqueeze(0).repeat(B, 1, 1).to(device)

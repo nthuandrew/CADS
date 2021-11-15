@@ -3,34 +3,38 @@ from class_Segmentation import Segmentation
 from class_BertForClassification_Wrapper import Bert_Wrapper
 
 
-# model_setting = {'criminal_type': 'gun', 'classify': 'sentence'}
-# Sex
-# model_setting = {'criminal_type': 'sex', 'classify': 'factor', 'factor_lst': ['犯罪後之態度', '犯罪之手段與所生損害', '被害人的態度', '被告之品行', '其他審酌事項']}
-# Gun
-# model_setting = {'criminal_type': 'gun', 'classify': 'factor', 'factor_lst': ['犯罪後之態度', '犯罪所生之危險或違反義務之程度', '被告之品行', '其他審酌事項']}
-# Drug
-model_setting = {'criminal_type': 'drug', 'classify': 'factor', 'factor_lst': ['犯罪後之態度', '犯罪所生之危險或損害或違反義務之程度', '被告之品行', '其他審酌事項']}
+
+# model_setting = {'mode': 'train_sentence', 'train_data': 'gun'}
+# model_setting = {'mode': 'train_factor', 'train_data': 'gun', 'factor_lst': ['犯罪後之態度', '犯罪所生之危險或違反義務之程度', '被告之品行', '其他審酌事項']}
+model_setting = {'mode': 'pred_factor', 'train_data': 'gun', 'pred_data':'全文標註的測試句', 'factor_lst': ['犯罪後之態度', '犯罪所生之危險或違反義務之程度', '被告之品行', '其他審酌事項']}
 
 
 # Segmentation
-# df = pd.read_excel(f'data/raw/data_criminal_%s.xlsx' % model_setting['criminal_type'])
+# df = pd.read_excel(f'data/raw/data_criminal_%s.xlsx' % model_setting['train_data'])
 # seg = Segmentation(type="bert")
 # # modify col names
-# if criminal_type == 'sex':
-#     categorical_info = ['法條', '犯罪後之態度', '犯罪之手段與所生損害', '被害人的態度', '被告之品行', '其他審酌事項', '有利', '中性', '不利']
-# elif criminal_type=='gun':
-#     categorical_info = ['法條', '犯罪後之態度', '犯罪所生之危險或違反義務之程度', '被告之品行', '其他審酌事項', '有利', '中性', '不利']
-# elif criminal_type=='drug':
-#     categorical_info = ['法條', '犯罪後之態度', '犯罪所生之危險或損害或違反義務之程度', '被告之品行', '其他審酌事項', '有利', '中性', '不利']
+# categorical_info = model_setting['factor_lst']+['有利', '中性', '不利']
 # # run
-# df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df, categorical_info, model_setting['criminal_type'])
+# df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df, categorical_info, model_setting['train_data'])
 # del df, seg
 # gc.collect()
 
-if model_setting['classify'] == 'sentence':
+
+# if model_setting['mode'] == 'pred_factor':
+#     df = pd.read_excel(f'data/pred/%s.xlsx' % model_setting['pred_data'])
+#     seg = Segmentation(type="bert")
+#     # modify col names
+#     categorical_info = model_setting['factor_lst']+['有利', '中性', '不利']
+#     # run
+#     df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df, categorical_info, model_setting['pred_data'])
+#     del df, seg
+#     gc.collect()
+
+
+if model_setting['mode'] == 'train_sentence':
     # BERT: Classification for criminal sentiment analysis
     seed_list = [1234, 5678, 7693145, 947, 13, 27, 1, 5, 9, 277]
-    df = pd.read_pickle(f'./data/cleaned/criminal_%s_seg_bert.pkl' % model_setting['criminal_type'])
+    df = pd.read_pickle(f'./data/cleaned/criminal_%s_seg_bert.pkl' % model_setting['train_data'])
     df_neu = pd.read_pickle(f'./data/cleaned/criminal_%s_neutral_seg_bert.pkl' % model_setting['criminal_type'])
     # for i in range(10):
     #     print("Start test:", )
@@ -43,18 +47,40 @@ if model_setting['classify'] == 'sentence':
     trainloader, validloader, testloader = bw.prepare_criminal_sentiment_analysis_dataloader(df, df_neu)
     bw.initialize_training()
     bw.train()
-    bw.evaluate(path=f"%s.txt" % model_setting['criminal_type'])
+    bw.evaluate(path=f"%s.txt" % model_setting['train_data'])
 
-elif model_setting['classify'] == 'factor':
+elif model_setting['mode'] == 'train_factor':
     # BERT: Classification for criminal factor classification #############
-    df = pd.read_pickle(f'./data/cleaned/criminal_%s_seg_bert.pkl' % model_setting['criminal_type'])
+    df = pd.read_pickle(f'./data/cleaned/criminal_%s_seg_bert.pkl' % model_setting['train_data'])
     df_neu = pd.read_pickle(f'./data/cleaned/criminal_%s_neutral_seg_bert.pkl' % model_setting['criminal_type'])
     for fac in model_setting['factor_lst']:
         bw = Bert_Wrapper(num_labels = 2)
         trainloader, validloader, testloader = bw.prepare_criminal_judgement_factor_dataloader(df, df_neu, fac)
         bw.initialize_training()
         bw.train()
-        bw.evaluate(path=f"%s_%s.txt" % (model_setting['criminal_type'], fac))
+        bw.evaluate(path=f"%s_%s.txt" % (model_setting['train_data'], fac))
+        del trainloader, validloader, testloader , bw
+        gc.collect()
+
+elif model_setting['mode'] == 'pred_factor':
+    # BERT: Classification for criminal factor classification #############
+    df = pd.read_pickle(f'./data/cleaned/criminal_%s_seg_bert.pkl' % model_setting['train_data'])
+    df_neu = pd.read_pickle(f'./data/cleaned/criminal_%s_neutral_seg_bert.pkl' % model_setting['train_data'])
+    # df_pred = pd.read_pickle('./data/cleaned/criminal_%s_seg_bert.pkl' % model_setting['pred_data'])
+    # df_neu_pred = pd.read_pickle(f'./data/cleaned/criminal_%s_neutral_seg_bert.pkl' % model_setting['pred_data'])
+    for fac in model_setting['factor_lst']:
+        # Murphy: 如果要 call 已經存好的 model 來做 predict 為何要再 call train 的 function呢？裡面 train()判斷有無存在的 model，
+        # 如無也不會再繼續跑 train 後面的主邏輯了
+        m_name = 'bert_%s_%s' % (model_setting['train_data'], fac)
+        bw = Bert_Wrapper(save_model_name=m_name, num_labels = 2)
+        trainloader, validloader, testloader = bw.prepare_criminal_judgement_factor_dataloader(df, df_neu, fac)
+        bw.initialize_training()
+        bw.train()
+        bw.evaluate(path=f"%s_%s.txt" % (model_setting['train_data'], fac))
+
+        predloader = bw.prepare_criminal_judgement_factor_dataloader(df, df_neu, fac, for_prediction=True)
+        predictions = bw.predict(predloader)
+
         del trainloader, validloader, testloader , bw
         gc.collect()
 # %%
