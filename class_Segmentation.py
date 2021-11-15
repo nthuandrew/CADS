@@ -230,18 +230,23 @@ if __name__=='__main__':
     ############ END #############
 
     ############ Segment criminal for sentiment analysis #############
-    criminal_type="sex"
+    criminal_type="drug"
     df = pd.read_excel(f'data/raw/data_criminal_{criminal_type}.xlsx')
+    # df = pd.read_excel(f'data/raw/data_criminal_{criminal_type}_neutral.xlsx')
     seg = Segmentation(type="bert")
     # For sex
-    categorical_info = ['法條', '犯罪後之態度', '犯罪之手段與所生損害', '被害人的態度',
-       '被告之品行', '其他審酌事項', '有利', '中性', '不利']
+    # categorical_info = ['法條', '犯罪後之態度', '犯罪之手段與所生損害', '被害人的態度',
+    #    '被告之品行', '其他審酌事項', '有利', '中性', '不利']
     # For gun
+    # categorical_info = ['法條', '犯罪後之態度', '犯罪所生之危險或違反義務之程度', '被告之品行',
+    #     '其他審酌事項', '有利', '中性', '不利']
     # For drug
+    categorical_info = ['法條', '犯罪後之態度', '犯罪所生之危險或損害或違反義務之程度', '被告之品行',
+        '其他審酌事項', '有利', '中性', '不利']
+
     df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df, categorical_info, criminal_type=criminal_type)
      ############ END #############
 # %%
-
 
 
 # %%
