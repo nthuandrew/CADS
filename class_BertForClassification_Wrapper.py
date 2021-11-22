@@ -41,8 +41,8 @@ class Bert_Wrapper():
         2. To prepare new data for prediction, we need to set df_neu=None and for_prediction=True
         '''
         if for_prediction is False:
-            target_list = []
-            manul_other_list = []
+            target_list = []        # get the vectors of the sentences with the target featrue
+            manul_other_list = []   # get the vectors of the sentences w/o the target featrue
             for index, row in df.iterrows():
                 if row[target_feature] == True:
                     target_list.append(row['Sentence'])
@@ -121,40 +121,9 @@ class Bert_Wrapper():
                                     collate_fn=create_mini_batch)
             return self.trainloader, self.validloader, self.testloader
 
-        else:
-            target_list = []
-            manul_other_list = []
-            for index, row in df.iterrows():
-                if row[target_feature] == True:
-                    target_list.append(row['Sentence'])
-                else:
-                    manul_other_list.append(row['Sentence'])
-
-            target_list_shuffled = shuffle(target_list, random_state=self.seed)
-            manul_other_list_shuffled = shuffle(manul_other_list, random_state=self.seed)
-            other_list_shuffled = manul_other_list_shuffled
-
-
-            print("target feature training number:", len(target_list_shuffled))
-            print("manul feature training number:", len(manul_other_list_shuffled))
-            print("other feature training number:", len(other_list_shuffled))
-
-            if self.NUM_LABELS == 2:
-                # 不利標為0
-                y0 = [0]*len(target_list_shuffled)
-                # 有利標為1
-                y1 = [1]*len(other_list_shuffled)
-                # 二分類
-                y = y0+y1
-                X = target_list_shuffled + other_list_shuffled
-
-            else:
-                print('Number of labels seems wrong!')
-                return
-
-            pred_df = pd.DataFrame({'y':y,'X':X})
+        else:   # Prediction
+            pred_df = pd.DataFrame({'y':[0]*len(df),'X':df['Sentence']})
             pred_df = pred_df[~(pred_df.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)] # TODO: csu ask Murph?
-            pred_df = DataFrame(pred_df)
             pred_df.to_csv('./data/cleaned/pred.csv', index=False)
             pred_df.to_pickle('./data/cleaned/pred.pkl')
 
@@ -169,112 +138,126 @@ class Bert_Wrapper():
     # TODO: Murphy prepare dataloader 這邊重複的 code 太多，需要 refactor
     # TODO: Murphy 修改 dataframe 的切法讓他支援 split for class
     def prepare_criminal_sentiment_analysis_dataloader(self, df, df_neu=None, for_prediction=False):
-        class_obj = '程度'
-        target_features = ['有利', '不利' ,'中性']
-        advantage_list=[]
-        disadvantage_list=[]
-        manul_neutral_list=[]
+        if for_prediction==False:
+            class_obj = '程度'
+            target_features = ['有利', '不利' ,'中性']
+            advantage_list=[]       # get the vectors of the advantage sentences
+            disadvantage_list=[]    # get the vectors of the disadvantage sentences
+            manul_neutral_list=[]   # get the vectors of the neutral sentences
 
-        # TODO: Murphy 用 outputToList 來重構
-        for index, row in df.iterrows():
-            if row[target_features[0]] == True:
-                advantage_list.append(row['Sentence'])
-            elif row[target_features[1]] == True:
-                disadvantage_list.append(row['Sentence'])
-            elif row[target_features[2]] == True:
-                manul_neutral_list.append(row['Sentence'])
+            # TODO: Murphy 用 outputToList 來重構
+            for index, row in df.iterrows():
+                if row[target_features[0]] == True:
+                    advantage_list.append(row['Sentence'])
+                elif row[target_features[1]] == True:
+                    disadvantage_list.append(row['Sentence'])
+                elif row[target_features[2]] == True:
+                    manul_neutral_list.append(row['Sentence'])
+                else:
+                    print('Sentiment labeled wrong!')
+                    return
+
+            auto_neutral_list = [i for i in df_neu['Sentence']]
+            two_class_data_half_len = math.floor((len(advantage_list) + len(disadvantage_list))/2)
+
+            advantage_list_shuffled = shuffle(advantage_list, random_state=self.seed)
+            disadvantage_list_shuffled = shuffle(disadvantage_list, random_state=self.seed)
+            manul_neutral_list_shuffled = shuffle(manul_neutral_list, random_state=self.seed)
+            auto_neutral_list_shuffled = shuffle(auto_neutral_list, random_state=self.seed)[:3000]
+
+            neutral_list = manul_neutral_list_shuffled + auto_neutral_list_shuffled
+            neutral_list_shuffled = shuffle(neutral_list, random_state=self.seed)
+            
+            print("advantage training number:", len(advantage_list_shuffled))
+            print("disadvantage training number:", len(disadvantage_list_shuffled))
+            print("manul neutral training number:", len(manul_neutral_list_shuffled))
+            print("auto neutral training number:", len(auto_neutral_list_shuffled))
+            print("neutral training number:", len(neutral_list_shuffled))
+
+            
+
+            if self.NUM_LABELS == 2:
+                # 不利標為0
+                y0 = [0]*len(disadvantage_list_shuffled)
+                # 有利標為1
+                y1 = [1]*len(advantage_list_shuffled)
+                # 二分類
+                y = y0+y1
+                X = disadvantage_list_shuffled + advantage_list_shuffled
+            elif self.NUM_LABELS == 3:
+                # 不利標為0
+                y0 = [0]*len(disadvantage_list_shuffled)
+                # 有利標為1
+                y1 = [1]*len(advantage_list_shuffled)
+                # 中性標為2
+                y2 = [2]*len(neutral_list_shuffled)
+                # 三分類
+                y = y0+y1+y2
+                X = disadvantage_list_shuffled + advantage_list_shuffled + neutral_list_shuffled
+
             else:
-                print('Sentiment labeled wrong!')
+                print('Number of labels seems wrong!')
                 return
 
-        auto_neutral_list = [i for i in df_neu['Sentence']]
-        two_class_data_half_len = math.floor((len(advantage_list) + len(disadvantage_list))/2)
+            df_clean = pd.DataFrame({'y':y,'X':X})
+            df_clean = df_clean[~(df_clean.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)]
+            X, y = df_clean['X'], df_clean['y']
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=self.seed)
+            X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=self.seed)
+            X_train.reset_index(drop=True, inplace=True)
+            X_valid.reset_index(drop=True, inplace=True)
+            X_test.reset_index(drop=True, inplace=True)
+            y_train.reset_index(drop=True, inplace=True)
+            y_valid.reset_index(drop=True, inplace=True)
+            y_test.reset_index(drop=True, inplace=True)
 
-        advantage_list_shuffled = shuffle(advantage_list, random_state=self.seed)
-        disadvantage_list_shuffled = shuffle(disadvantage_list, random_state=self.seed)
-        manul_neutral_list_shuffled = shuffle(manul_neutral_list, random_state=self.seed)
-        auto_neutral_list_shuffled = shuffle(auto_neutral_list, random_state=self.seed)[:3000]
+            train_data = {
+                'label': y_train,
+                'text': X_train
+            }
+            train_df = DataFrame(train_data)
+            train_df.to_csv('./data/cleaned/train.csv', index=False)
+            train_df.to_pickle('./data/cleaned/train.pkl')
+            valid_data = {
+                'label': y_valid,
+                'text': X_valid
+            }
+            valid_df = DataFrame(valid_data)
+            valid_df.to_csv('./data/cleaned/valid.csv', index=False)
+            valid_df.to_pickle('./data/cleaned/valid.pkl')
+            test_data = {
+                'label': y_test,
+                'text': X_test
+            }
+            test_df = DataFrame(test_data)
+            test_df.to_csv('./data/cleaned/test.csv', index=False)
+            test_df.to_pickle('./data/cleaned/test.pkl')
 
-        neutral_list = manul_neutral_list_shuffled + auto_neutral_list_shuffled
-        neutral_list_shuffled = shuffle(neutral_list, random_state=self.seed)
-        
-        print("advantage training number:", len(advantage_list_shuffled))
-        print("disadvantage training number:", len(disadvantage_list_shuffled))
-        print("manul neutral training number:", len(manul_neutral_list_shuffled))
-        print("auto neutral training number:", len(auto_neutral_list_shuffled))
-        print("neutral training number:", len(neutral_list_shuffled))
+            trainset = SentenceDataset("train")
+            validset = SentenceDataset("valid")
+            testset = SentenceDataset("test")
 
-        
+            self.trainloader = DataLoader(trainset, batch_size=self.BATCH_SIZE, 
+                            collate_fn=create_mini_batch)
+            self.validloader = DataLoader(validset, batch_size=self.BATCH_SIZE, 
+                                    collate_fn=create_mini_batch)
+            self.testloader = DataLoader(testset, batch_size=256, 
+                                    collate_fn=create_mini_batch)
 
-        if self.NUM_LABELS == 2:
-            # 不利標為0
-            y0 = [0]*len(disadvantage_list_shuffled)
-            # 有利標為1
-            y1 = [1]*len(advantage_list_shuffled)
-            # 二分類
-            y = y0+y1
-            X = disadvantage_list_shuffled + advantage_list_shuffled
-        elif self.NUM_LABELS == 3:
-             # 不利標為0
-            y0 = [0]*len(disadvantage_list_shuffled)
-            # 有利標為1
-            y1 = [1]*len(advantage_list_shuffled)
-            # 中性標為2
-            y2 = [2]*len(neutral_list_shuffled)
-            # 三分類
-            y = y0+y1+y2
-            X = disadvantage_list_shuffled + advantage_list_shuffled + neutral_list_shuffled
+            return self.trainloader, self.validloader, self.testloader
 
-        else:
-            print('Number of labels seems wrong!')
-            return
+        else:   # Prediction
+            pred_df = pd.DataFrame({'y':[0]*len(df),'X':df['Sentence']})
+            pred_df = pred_df[~(pred_df.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)] # TODO: csu ask Murph?
+            pred_df.to_csv('./data/cleaned/pred.csv', index=False)
+            pred_df.to_pickle('./data/cleaned/pred.pkl')
 
-        df_clean = pd.DataFrame({'y':y,'X':X})
-        df_clean = df_clean[~(df_clean.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)]
-        X, y = df_clean['X'], df_clean['y']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=self.seed)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=self.seed)
-        X_train.reset_index(drop=True, inplace=True)
-        X_valid.reset_index(drop=True, inplace=True)
-        X_test.reset_index(drop=True, inplace=True)
-        y_train.reset_index(drop=True, inplace=True)
-        y_valid.reset_index(drop=True, inplace=True)
-        y_test.reset_index(drop=True, inplace=True)
+            predset = SentenceDataset("pred")
 
-        train_data = {
-            'label': y_train,
-            'text': X_train
-        }
-        train_df = DataFrame(train_data)
-        train_df.to_csv('./data/cleaned/train.csv', index=False)
-        train_df.to_pickle('./data/cleaned/train.pkl')
-        valid_data = {
-            'label': y_valid,
-            'text': X_valid
-        }
-        valid_df = DataFrame(valid_data)
-        valid_df.to_csv('./data/cleaned/valid.csv', index=False)
-        valid_df.to_pickle('./data/cleaned/valid.pkl')
-        test_data = {
-            'label': y_test,
-            'text': X_test
-        }
-        test_df = DataFrame(test_data)
-        test_df.to_csv('./data/cleaned/test.csv', index=False)
-        test_df.to_pickle('./data/cleaned/test.pkl')
+            self.predloader = DataLoader(predset, batch_size=256, 
+                                    collate_fn=create_mini_batch)
 
-        trainset = SentenceDataset("train")
-        validset = SentenceDataset("valid")
-        testset = SentenceDataset("test")
-
-        self.trainloader = DataLoader(trainset, batch_size=self.BATCH_SIZE, 
-                         collate_fn=create_mini_batch)
-        self.validloader = DataLoader(validset, batch_size=self.BATCH_SIZE, 
-                                collate_fn=create_mini_batch)
-        self.testloader = DataLoader(testset, batch_size=256, 
-                                collate_fn=create_mini_batch)
-
-        return self.trainloader, self.validloader, self.testloader
+            return self.predloader
 
     def prepare_custody_judgement_factor_dataloader(self, df, df_neu, target_features = ["親子感情", "意願能力", "父母經濟"]):
         all_features = ["親子感情", "意願能力", "主要照顧", "父母生活", "子女年齡", "子女意願",  "支持系統", "父母經濟"]
