@@ -80,13 +80,13 @@ elif model_setting['mode'] == 'pred_factor':
         bw.evaluate(path=f"%s_%s.txt" % (model_setting['train_data'], fac))
 
         predloader = bw.prepare_criminal_judgement_factor_dataloader(df_pred, target_feature=fac, for_prediction=True)
+
         predictions = bw.predict(predloader)
         df_final[fac] = predictions[:, 1]
         del bw, trainloader, validloader, testloader , predloader, predictions
         gc.collect()
     
     df_final.to_csv(f'data/pred/%s.csv' % model_setting['pred_data'], index=False)
-
 
 elif model_setting['mode'] == 'pred_sentence':
     ############# BERT: Classification for criminal sentiment analysis #############

@@ -34,6 +34,7 @@ class Bert_Wrapper():
     #     self.info_dict['Performance']['F1-score'].append(f1)
     #     self.info_dict['Performance']['Confusion-Matrix'].append(cm)
 
+
     def prepare_criminal_judgement_factor_dataloader(self, df, df_neu=None, target_feature=None, for_prediction=False):
         '''
         1. Prepare training data for factor classification
