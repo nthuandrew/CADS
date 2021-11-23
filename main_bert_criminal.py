@@ -105,7 +105,7 @@ elif model_setting['mode'] == 'pred_factor':
 
         predloader = bw.prepare_criminal_judgement_factor_dataloader(df_pred, target_feature=fac, for_prediction=True)
         predictions = bw.predict(predloader)
-        df_final[fac] = predictions[:, 1]
+        df_final[fac] = predictions[:, 0]
         del bw, trainloader, validloader, testloader , predloader, predictions
         gc.collect()
     
