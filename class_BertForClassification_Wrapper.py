@@ -16,15 +16,33 @@ class Bert_Wrapper():
         '''
         param save_model_name: None or str. If use None, then will not save model
         '''
-        self.info_dict = {'save_model_name': save_model_name, 'hyper_param':{},'accuracy':None, 'precision':None, 'recall':None, 'f1':None, 'comfusion_matrix':None}
-        self.info_dict['hyper_param']['seed'] = self.seed = seed
         self.device = setup_device()
+        self.seed = seed
         seed_torch(seed=self.seed)
-        self.info_dict['hyper_param']['MAX_LENGTH'] = self.MAX_LENGTH = 128
-        self.info_dict['hyper_param']['NUM_LABELS'] = self.NUM_LABELS = num_labels
-        self.info_dict['hyper_param']['BATCH_SIZE'] = self.BATCH_SIZE = 64
-        self.info_dict['hyper_param']['EPOCHS'] = self.EPOCHS = 2
-        self.info_dict['hyper_param']['PRETRAINED_MODEL_NAME'] = self.PRETRAINED_MODEL_NAME = "bert-base-chinese"
+        self.MAX_LENGTH = 128
+        self.NUM_LABELS = num_labels
+        self.BATCH_SIZE = 64
+        self.EPOCHS = 2
+        self.PRETRAINED_MODEL_NAME = "bert-base-chinese"
+        self.model = None
+        self.info_dict = {'save_model_name': save_model_name, 'hyper_param':{},'accuracy':None, 'precision':None, 'recall':None, 'f1':None, 'comfusion_matrix':None}
+        self.model_path = './data/model/%s.pkl' % self.info_dict['save_model_name']
+        if self.info_dict['save_model_name'] is not None and os.path.exists(self.model_path):
+            print(">>>>>Find an exist trained model in our file system!")
+            with open(self.model_path, "rb") as file:
+                info_dict, model = pickle.load(file)
+            # if info_dict['hyper_param'] == self.info_dict['hyper_param']:   # check if hyper_params are the same
+                self.info_dict = info_dict
+                self.model = model
+        else:
+            print(">>>>>Initial a new model!")
+            self.info_dict['hyper_param']['seed'] = self.seed
+            self.info_dict['hyper_param']['MAX_LENGTH'] = self.MAX_LENGTH 
+            self.info_dict['hyper_param']['NUM_LABELS'] = self.NUM_LABELS 
+            self.info_dict['hyper_param']['BATCH_SIZE'] = self.BATCH_SIZE 
+            self.info_dict['hyper_param']['EPOCHS'] = self.EPOCHS 
+            self.info_dict['hyper_param']['PRETRAINED_MODEL_NAME'] = self.PRETRAINED_MODEL_NAME
+        
         return
     
     # def add_performance(self, acc, pre, rc, f1, cm):
@@ -34,6 +52,34 @@ class Bert_Wrapper():
     #     self.info_dict['Performance']['F1-score'].append(f1)
     #     self.info_dict['Performance']['Confusion-Matrix'].append(cm)
 
+    def _create_labeled_data(self, data_list, num_labels=2):
+        assert len(data_list) == num_labels
+        y = []
+        X = []
+        for idx, data in enumerate(data_list):
+            y += [idx]*len(data)
+            X += data
+        return X, y
+
+    def _create_cleaned_dataframe(self, X, y):
+        df = pd.DataFrame({'y':y,'X':X})
+        df = df[~(df.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)]
+        if len(df) == 0:
+            print('>>>>>Error: Sentences was truncated due to all of them were over length!')
+        return df
+
+    def _create_dataset(self, X, y, type="train"):
+        X.reset_index(drop=True, inplace=True)
+        y.reset_index(drop=True, inplace=True)
+        data = {
+            'label': y,
+            'text': X
+        }
+        df = DataFrame(data)
+        df.to_csv(f'./data/cleaned/{type}.csv', index=False)
+        df.to_pickle(f'./data/cleaned/{type}.pkl')
+        dataset = SentenceDataset(type)
+        return dataset
 
     def prepare_criminal_judgement_factor_dataloader(self, df, df_neu=None, target_feature=None, for_prediction=False):
         '''
@@ -43,6 +89,7 @@ class Bert_Wrapper():
         if for_prediction is False:
             target_list = []        # get the vectors of the sentences with the target featrue
             manul_other_list = []   # get the vectors of the sentences w/o the target featrue
+
             for index, row in df.iterrows():
                 if row[target_feature] == True:
                     target_list.append(row['Sentence'])
@@ -61,58 +108,19 @@ class Bert_Wrapper():
             print("auto feature training number:", len(auto_other_list_shuffled))
             print("other feature training number:", len(other_list_shuffled))
 
-            if self.NUM_LABELS == 2:
-                # 不利標為0
-                y0 = [0]*len(target_list_shuffled)
-                # 有利標為1
-                y1 = [1]*len(other_list_shuffled)
-                # 二分類
-                y = y0+y1
-                X = target_list_shuffled + other_list_shuffled
-
-            else:
-                print('Number of labels seems wrong!')
-                return
-
-            df_clean = pd.DataFrame({'y':y,'X':X})
-            df_clean = df_clean[~(df_clean.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)] # TODO: csu ask Murph?
+            data_list = [target_list_shuffled, other_list_shuffled]
+            X, y = self._create_labeled_data(data_list, self.NUM_LABELS)
+            df_clean = self._create_cleaned_dataframe(X=X, y=y)
             X, y = df_clean['X'], df_clean['y']
+            # Split data
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=self.seed)
             X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=self.seed)
-            X_train.reset_index(drop=True, inplace=True)
-            X_valid.reset_index(drop=True, inplace=True)
-            X_test.reset_index(drop=True, inplace=True)
-            y_train.reset_index(drop=True, inplace=True)
-            y_valid.reset_index(drop=True, inplace=True)
-            y_test.reset_index(drop=True, inplace=True)
+            # Create dataset
+            trainset = self._create_dataset(X_train, y_train, type="train")
+            validset = self._create_dataset(X_valid, y_valid, type="valid")
+            testset = self._create_dataset(X_test, y_test, type="test")
 
-            train_data = {
-                'label': y_train,
-                'text': X_train
-            }
-            train_df = DataFrame(train_data)
-            train_df.to_csv('./data/cleaned/train.csv', index=False)
-            train_df.to_pickle('./data/cleaned/train.pkl')
-            valid_data = {
-                'label': y_valid,
-                'text': X_valid
-            }
-            valid_df = DataFrame(valid_data)
-            valid_df.to_csv('./data/cleaned/valid.csv', index=False)
-            valid_df.to_pickle('./data/cleaned/valid.pkl')
-            test_data = {
-                'label': y_test,
-                'text': X_test
-            }
-            test_df = DataFrame(test_data)
-            test_df.to_csv('./data/cleaned/test.csv', index=False)
-            test_df.to_pickle('./data/cleaned/test.pkl')
-
-            # 
-            trainset = SentenceDataset("train")
-            validset = SentenceDataset("valid")
-            testset = SentenceDataset("test")
-
+            
             self.trainloader = DataLoader(trainset, batch_size=self.BATCH_SIZE, 
                             collate_fn=create_mini_batch)
             self.validloader = DataLoader(validset, batch_size=self.BATCH_SIZE, 
@@ -122,13 +130,8 @@ class Bert_Wrapper():
             return self.trainloader, self.validloader, self.testloader
 
         else:   # Prediction
-            pred_df = pd.DataFrame({'y':[0]*len(df),'X':df['Sentence']})
-            pred_df = pred_df[~(pred_df.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)] # TODO: csu ask Murph?
-            pred_df.to_csv('./data/cleaned/pred.csv', index=False)
-            pred_df.to_pickle('./data/cleaned/pred.pkl')
-
-            predset = SentenceDataset("pred")
-
+            pred_df = self._create_cleaned_dataframe(X=df['Sentence'], y=[0]*len(df))
+            predset = self._create_dataset(pred_df['X'], pred_df['y'], type="pred")
             self.predloader = DataLoader(predset, batch_size=256, 
                                     collate_fn=create_mini_batch)
 
@@ -139,7 +142,6 @@ class Bert_Wrapper():
     # TODO: Murphy 修改 dataframe 的切法讓他支援 split for class
     def prepare_criminal_sentiment_analysis_dataloader(self, df, df_neu=None, for_prediction=False):
         if for_prediction==False:
-            class_obj = '程度'
             target_features = ['有利', '不利' ,'中性']
             advantage_list=[]       # get the vectors of the advantage sentences
             disadvantage_list=[]    # get the vectors of the disadvantage sentences
@@ -158,7 +160,6 @@ class Bert_Wrapper():
                     return
 
             auto_neutral_list = [i for i in df_neu['Sentence']]
-            two_class_data_half_len = math.floor((len(advantage_list) + len(disadvantage_list))/2)
 
             advantage_list_shuffled = shuffle(advantage_list, random_state=self.seed)
             disadvantage_list_shuffled = shuffle(disadvantage_list, random_state=self.seed)
@@ -173,69 +174,19 @@ class Bert_Wrapper():
             print("manul neutral training number:", len(manul_neutral_list_shuffled))
             print("auto neutral training number:", len(auto_neutral_list_shuffled))
             print("neutral training number:", len(neutral_list_shuffled))
-
             
+            data_list = [disadvantage_list_shuffled, advantage_list_shuffled, neutral_list_shuffled]
+            X, y = self._create_labeled_data(data_list, self.NUM_LABELS)
 
-            if self.NUM_LABELS == 2:
-                # 不利標為0
-                y0 = [0]*len(disadvantage_list_shuffled)
-                # 有利標為1
-                y1 = [1]*len(advantage_list_shuffled)
-                # 二分類
-                y = y0+y1
-                X = disadvantage_list_shuffled + advantage_list_shuffled
-            elif self.NUM_LABELS == 3:
-                # 不利標為0
-                y0 = [0]*len(disadvantage_list_shuffled)
-                # 有利標為1
-                y1 = [1]*len(advantage_list_shuffled)
-                # 中性標為2
-                y2 = [2]*len(neutral_list_shuffled)
-                # 三分類
-                y = y0+y1+y2
-                X = disadvantage_list_shuffled + advantage_list_shuffled + neutral_list_shuffled
-
-            else:
-                print('Number of labels seems wrong!')
-                return
-
-            df_clean = pd.DataFrame({'y':y,'X':X})
-            df_clean = df_clean[~(df_clean.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)]
+            df_clean = self._create_cleaned_dataframe(X=X, y=y)
             X, y = df_clean['X'], df_clean['y']
+            # Split data
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=self.seed)
             X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=self.seed)
-            X_train.reset_index(drop=True, inplace=True)
-            X_valid.reset_index(drop=True, inplace=True)
-            X_test.reset_index(drop=True, inplace=True)
-            y_train.reset_index(drop=True, inplace=True)
-            y_valid.reset_index(drop=True, inplace=True)
-            y_test.reset_index(drop=True, inplace=True)
-
-            train_data = {
-                'label': y_train,
-                'text': X_train
-            }
-            train_df = DataFrame(train_data)
-            train_df.to_csv('./data/cleaned/train.csv', index=False)
-            train_df.to_pickle('./data/cleaned/train.pkl')
-            valid_data = {
-                'label': y_valid,
-                'text': X_valid
-            }
-            valid_df = DataFrame(valid_data)
-            valid_df.to_csv('./data/cleaned/valid.csv', index=False)
-            valid_df.to_pickle('./data/cleaned/valid.pkl')
-            test_data = {
-                'label': y_test,
-                'text': X_test
-            }
-            test_df = DataFrame(test_data)
-            test_df.to_csv('./data/cleaned/test.csv', index=False)
-            test_df.to_pickle('./data/cleaned/test.pkl')
-
-            trainset = SentenceDataset("train")
-            validset = SentenceDataset("valid")
-            testset = SentenceDataset("test")
+            # Create dataset
+            trainset = self._create_dataset(X_train, y_train, type="train")
+            validset = self._create_dataset(X_valid, y_valid, type="valid")
+            testset = self._create_dataset(X_test, y_test, type="test")
 
             self.trainloader = DataLoader(trainset, batch_size=self.BATCH_SIZE, 
                             collate_fn=create_mini_batch)
@@ -247,12 +198,8 @@ class Bert_Wrapper():
             return self.trainloader, self.validloader, self.testloader
 
         else:   # Prediction
-            pred_df = pd.DataFrame({'y':[0]*len(df),'X':df['Sentence']})
-            pred_df = pred_df[~(pred_df.X.apply(lambda x : len(x)) > self.MAX_LENGTH-2)] # TODO: csu ask Murph?
-            pred_df.to_csv('./data/cleaned/pred.csv', index=False)
-            pred_df.to_pickle('./data/cleaned/pred.pkl')
-
-            predset = SentenceDataset("pred")
+            pred_df = self._create_cleaned_dataframe(X=df['Sentence'], y=[0]*len(df))
+            predset = self._create_dataset(pred_df['X'], pred_df['y'], type="pred")
 
             self.predloader = DataLoader(predset, batch_size=256, 
                                     collate_fn=create_mini_batch)
@@ -456,6 +403,7 @@ class Bert_Wrapper():
 
 
     def predict(self, dataloader, compute_acc=False, output_attention=False):
+        assert self.model != None
         model = self.model
         predictions = None
         attentions = []
@@ -593,17 +541,15 @@ class Bert_Wrapper():
     def train(self):
         '''
         Train model with/without trainning data? # TODO: csu ask Murphy
-        '''
-        fname = './data/model/%s.pkl' % self.info_dict['save_model_name']   # get the exit model path
+        '''  # get the exit model path
         # import the exist model
         # Murphy: 這邊即便傳入 save_model_name 但如果 file not exist 的話，就不會跑 train 的流程了
-        if self.info_dict['save_model_name'] is not None:
-            if os.path.exists(fname):
-                with open(fname, "rb") as file:
-                    info_dict, model = pickle.load(file)
-                # if info_dict['hyper_param'] == self.info_dict['hyper_param']:   # check if hyper_params are the same
-                    self.info_dict = info_dict
-                    self.model = model
+        if self.info_dict['save_model_name'] is not None and os.path.exists(self.model_path):
+            with open(self.model_path, "rb") as file:
+                info_dict, model = pickle.load(file)
+            # if info_dict['hyper_param'] == self.info_dict['hyper_param']:   # check if hyper_params are the same
+                self.info_dict = info_dict
+                self.model = model
         
         # train a new model
         else:
@@ -689,7 +635,7 @@ class Bert_Wrapper():
             
             # save model
             if self.info_dict['save_model_name'] is not None:
-                with open(fname, "wb") as file: # save model
+                with open(self.model_path, "wb") as file: # save model
                     pickle.dump([self.info_dict, self.model], file=file)
             
         return

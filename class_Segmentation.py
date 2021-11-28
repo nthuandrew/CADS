@@ -75,10 +75,13 @@ class Segmentation():
         init_jieba(*list(zip(stop_words_path_list, dict_path_list, idf_path_list, userdict_list))[methods_name['dict1']])
         return
                                      
-    def segment_criminal_sentiment_analysis_articles_wrapper(self, df, categorical_info, criminal_type="sex"):
+    def segment_criminal_sentiment_analysis_articles_wrapper(self, \
+        df, \
+        categorical_info, meta_info=[], target_columns=["Sentence"], criminal_type="sex"):
         df_list = [df]
         categorical = categorical_info
-        meta_info = ['TextID']
+        #meta_info = ['TextID']
+        # meta_info=[meta_info]
 
         df_list2 = []
 
@@ -87,7 +90,7 @@ class Segmentation():
             df2[meta_info+categorical] = df[meta_info+categorical]
             df_list2.append(df2)
 
-        target_columns = ['Sentence']
+        # target_columns = [target_columns]
         df_output = self._segment_articles(df_list, df_list2, target_columns)[0]
         display(df_output)
         df_output.to_csv(f"./data/cleaned/criminal_{criminal_type}_seg_{self.type}.csv", index=False)
@@ -235,16 +238,17 @@ if __name__=='__main__':
     # df = pd.read_excel(f'data/raw/data_criminal_{criminal_type}_neutral.xlsx')
     seg = Segmentation(type="bert")
     # For sex
-    # categorical_info = ['法條', '犯罪後之態度', '犯罪之手段與所生損害', '被害人的態度',
+    # categorical_info = ['犯罪後之態度', '犯罪之手段與所生損害', '被害人的態度',
     #    '被告之品行', '其他審酌事項', '有利', '中性', '不利']
     # For gun
-    # categorical_info = ['法條', '犯罪後之態度', '犯罪所生之危險或違反義務之程度', '被告之品行',
+    # categorical_info = ['犯罪後之態度', '犯罪所生之危險或違反義務之程度', '被告之品行',
     #     '其他審酌事項', '有利', '中性', '不利']
     # For drug
-    categorical_info = ['法條', '犯罪後之態度', '犯罪所生之危險或損害或違反義務之程度', '被告之品行',
+    categorical_info = ['犯罪後之態度', '犯罪所生之危險或損害或違反義務之程度', '被告之品行',
         '其他審酌事項', '有利', '中性', '不利']
 
-    df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df, categorical_info, criminal_type=criminal_type)
+    df = seg.segment_criminal_sentiment_analysis_articles_wrapper(df, \
+        categorical_info, meta_info=None, target_columns="Sentence", criminal_type=criminal_type)
      ############ END #############
 # %%
 
