@@ -2,6 +2,9 @@
 from module.util import *
 from class_Segmentation import Segmentation
 from class_BertForClassification_Wrapper import Bert_Wrapper
+
+# %%
+
 # %%
 '''
 這邊所有句子可以共用這些 segmentation 和 predict 的 model，只要 load model 一次就好

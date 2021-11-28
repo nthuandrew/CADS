@@ -68,7 +68,10 @@ if model_setting['mode'] == 'train_sentence':
     #     bw.train()
     #     bw.evaluate(path=f"{criminal_type}.txt")
     bw = Bert_Wrapper(num_labels = 3, seed = seed_list[0])
-    trainloader, validloader, testloader = bw.prepare_criminal_sentiment_analysis_dataloader(df, df_neu)
+    # trainloader, validloader, testloader = bw.prepare_criminal_sentiment_analysis_dataloader(df, df_neu)
+    trainloader, validloader, testloader = bw.prepare_criminal_dataloader(
+        bw._extract_criminal_sentiment_analysis_datalst(df, df_neu, ['不利', '有利', '中性'])
+    )
     bw.initialize_training()
     bw.train()
     bw.evaluate(path=f"%s.txt" % model_setting['train_data'])
@@ -79,7 +82,10 @@ elif model_setting['mode'] == 'train_factor':
     df_neu = pd.read_pickle(f'./data/cleaned/criminal_%s_neutral_seg_bert.pkl' % model_setting['train_type'])
     for fac in model_setting['factor_lst']:
         bw = Bert_Wrapper(num_labels = 2)
-        trainloader, validloader, testloader = bw.prepare_criminal_judgement_factor_dataloader(df, df_neu, fac)
+        # trainloader, validloader, testloader = bw.prepare_criminal_judgement_factor_dataloader(df, df_neu, fac)
+        trainloader, validloader, testloader = bw.prepare_criminal_dataloader(
+        bw._extract_criminal_judgement_factor_datalst(df, df_neu, target_feature=fac)
+        )
         bw.initialize_training()
         bw.train()
         bw.evaluate(path=f"%s_%s.txt" % (model_setting['train_data'], fac))
@@ -94,14 +100,19 @@ elif model_setting['mode'] == 'pred_sentence':
     # predict data
     df_final = pd.read_excel(f'data/pred/%s.xlsx' % model_setting['pred_data'])    # word
     df_pred = pd.read_pickle('./data/cleaned/criminal_%s_seg_bert.pkl' % model_setting['pred_data'])    # vector
+    
     model_name = f"{model_setting['train_data']}_{model_setting['mode']}_epoch2_seed1234_1128"
     bw = Bert_Wrapper(save_model_name=model_name, num_labels = 3)
-    trainloader, validloader, testloader = bw.prepare_criminal_sentiment_analysis_dataloader(df, df_neu)
+    # trainloader, validloader, testloader = bw.prepare_criminal_sentiment_analysis_dataloader(df, df_neu)
+    trainloader, validloader, testloader = bw.prepare_criminal_dataloader(
+        bw._extract_criminal_sentiment_analysis_datalst(df, df_neu, ['不利', '有利', '中性'])
+    )
     bw.initialize_training()
     bw.train()
     bw.evaluate(path=f"%s.txt" % model_setting['train_data'])
 
-    predloader = bw.prepare_criminal_sentiment_analysis_dataloader(df_pred, for_prediction=True)
+    # predloader = bw.prepare_criminal_sentiment_analysis_dataloader(df_pred, for_prediction=True)
+    predloader = bw.prepare_criminal_dataloader(df_pred, for_prediction=True)
     predictions = bw.predict(predloader)
     df_final['不利'] = predictions[:, 0]
     df_final['有利'] = predictions[:, 1]
@@ -125,12 +136,16 @@ elif model_setting['mode'] == 'pred_factor':
         # bw = Bert_Wrapper(save_model_name=m_name, num_labels = 2)
         model_name = f"{model_setting['train_data']}_{model_setting['mode']}_{fac}_epoch2_seed1234_1128"
         bw = Bert_Wrapper(save_model_name=model_name, num_labels = 2)
-        trainloader, validloader, testloader = bw.prepare_criminal_judgement_factor_dataloader(df, df_neu, target_feature=fac)
+        # trainloader, validloader, testloader = bw.prepare_criminal_judgement_factor_dataloader(df, df_neu, target_feature=fac)
+        trainloader, validloader, testloader = bw.prepare_criminal_dataloader(
+        bw._extract_criminal_judgement_factor_datalst(df, df_neu, target_feature=fac)
+        )
         bw.initialize_training()
         bw.train()  # call trained model or train a new model
         bw.evaluate(path=f"%s_%s.txt" % (model_setting['train_data'], fac))
 
-        predloader = bw.prepare_criminal_judgement_factor_dataloader(df_pred, target_feature=fac, for_prediction=True)
+        # predloader = bw.prepare_criminal_judgement_factor_dataloader(df_pred, target_feature=fac, for_prediction=True)
+        predloader = bw.prepare_criminal_dataloader(df_pred, for_prediction=True)
         predictions = bw.predict(predloader)
         df_final[fac] = predictions[:, 0]
         del bw, trainloader, validloader, testloader , predloader, predictions
