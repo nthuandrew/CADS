@@ -26,7 +26,7 @@ class Bert_Wrapper():
         self.PRETRAINED_MODEL_NAME = "bert-base-chinese"
         self.model = None
         self.info_dict = {'save_model_name': save_model_name, 'hyper_param':{},'accuracy':None, 'precision':None, 'recall':None, 'f1':None, 'comfusion_matrix':None}
-        self.model_path = './data/model/%s.pkl' % self.info_dict['save_model_name']
+        self.model_path = '/srv/model/%s.pkl' % self.info_dict['save_model_name']
         if self.info_dict['save_model_name'] is not None and os.path.exists(self.model_path):
             print(">>>>>Find an exist trained model in our file system!")
             with open(self.model_path, "rb") as file:
@@ -120,6 +120,7 @@ class Bert_Wrapper():
         for idx, feature in enumerate(target_feature):
             datas_shuffled[feature] = shuffle(datas[feature], random_state=self.seed)
 
+        auto_neutral_list_shuffled = []
         if df_neu is not None:
             auto_neutral_list = [i for i in df_neu['Sentence']]
             auto_neutral_list_shuffled = shuffle(auto_neutral_list, random_state=self.seed)[:3000]

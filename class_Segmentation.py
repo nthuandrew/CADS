@@ -95,6 +95,7 @@ class Segmentation():
         display(df_output)
         df_output.to_csv(f"./data/cleaned/criminal_{criminal_type}_seg_{self.type}.csv", index=False)
         df_output.to_pickle(f"./data/cleaned/criminal_{criminal_type}_seg_{self.type}.pkl")
+        print(f'>>>>> Save segmented file : criminal_{criminal_type}_seg_{self.type}.pkl >>>>>')
         return df_output
 
     def segment_custody_judgement_factor_articles_wrapper(self, df, df_neu):
