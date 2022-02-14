@@ -35,8 +35,8 @@ print("不利:", s_predictions[:, 0])
 print("有利:", s_predictions[:, 1])
 print("中性:", s_predictions[:, 2])
 
-print("是這個量型因子", f1_predictions[:, 1])
-print("不是這個量型因子:", f1_predictions[:, 0])
+print("是這個量型因子", f1_predictions[:, 0])
+print("不是這個量型因子:", f1_predictions[:, 1])
 
 
 # %%

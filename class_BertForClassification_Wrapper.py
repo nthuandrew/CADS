@@ -12,20 +12,25 @@ import math
 from matplotlib import pyplot as plt
 # %%
 class Bert_Wrapper():
-    def __init__(self, save_model_name=None, num_labels=2, seed=1234):
+    def __init__(self, save_model_name=None, num_labels=2, seed=1234,
+    batch_size = 64, epoch = 2, pooling_strategy='reduce_mean', lr=2e-5, max_len = 128
+    ):
         '''
         param save_model_name: None or str. If use None, then will not save model
         '''
         self.device = setup_device()
         self.seed = seed
         seed_torch(seed=self.seed)
-        self.MAX_LENGTH = 128
+        self.MAX_LENGTH = max_len
         self.NUM_LABELS = num_labels
-        self.BATCH_SIZE = 64
-        self.EPOCHS = 2
+        self.BATCH_SIZE = batch_size
+        self.EPOCHS = epoch
+        self.pooling_strategy = pooling_strategy
+        self.lr = lr
         self.PRETRAINED_MODEL_NAME = "bert-base-chinese"
         self.model = None
-        self.info_dict = {'save_model_name': save_model_name, 'hyper_param':{},'accuracy':None, 'precision':None, 'recall':None, 'f1':None, 'comfusion_matrix':None}
+        self.info_dict = {'save_model_name': save_model_name, 'hyper_param':{},'accuracy':None, 'precision':None, 'recall':None, 'f1':None, 'comfusion_matrix':None, \
+            'data_preprocess_log': ""}
         self.model_path = '/srv/model/%s.pkl' % self.info_dict['save_model_name']
         if self.info_dict['save_model_name'] is not None and os.path.exists(self.model_path):
             print(">>>>>Find an exist trained model in our file system!")
@@ -42,6 +47,7 @@ class Bert_Wrapper():
             self.info_dict['hyper_param']['BATCH_SIZE'] = self.BATCH_SIZE 
             self.info_dict['hyper_param']['EPOCHS'] = self.EPOCHS 
             self.info_dict['hyper_param']['PRETRAINED_MODEL_NAME'] = self.PRETRAINED_MODEL_NAME
+            self.info_dict['data_preprocess_log'] = ""
         
         return
     
@@ -93,10 +99,11 @@ class Bert_Wrapper():
                 manul_other_list.append(row['Sentence'])
 
         target_list_shuffled = shuffle(target_list, random_state=self.seed)
-        manul_other_list_shuffled = shuffle(manul_other_list, random_state=self.seed)
+        # target 的兩倍, manul:auto=6:4
+        manul_other_list_shuffled = shuffle(manul_other_list, random_state=self.seed)[:round(1.2*len(target_list_shuffled))]
         if df_neu is not None:
             auto_other_list = [i for i in df_neu['Sentence']]
-            auto_other_list_shuffled = shuffle(auto_other_list, random_state=self.seed)[:3000]
+            auto_other_list_shuffled = shuffle(auto_other_list, random_state=self.seed)[:round(0.8*len(target_list_shuffled))]
 
         other_list_shuffled = manul_other_list_shuffled + auto_other_list_shuffled
 
@@ -105,7 +112,7 @@ class Bert_Wrapper():
         print("manul feature training number:", len(manul_other_list_shuffled))
         print("auto feature training number:", len(auto_other_list_shuffled))
         print("other feature training number:", len(other_list_shuffled))
-
+        self.info_dict['data_preprocess_log'] = f"{target_feature} training number:{len(target_list_shuffled)} \n標注資料中的其他(量刑因子) training number:{len(manul_other_list_shuffled)} \n自動擷取的中性句 training number: {len(auto_other_list_shuffled)} \n最終的其他(量刑因子) training number: {len(other_list_shuffled)} \n"
         data_list = [target_list_shuffled, other_list_shuffled]
         return data_list
 
@@ -131,6 +138,8 @@ class Bert_Wrapper():
         
         for i in datas_shuffled:
             print(f"{i} training numer: {len(datas_shuffled[i])}")
+            self.info_dict['data_preprocess_log'] += f"{i} training number:{len(datas_shuffled[i])} \n"
+
 
         data_list = [ datas_shuffled[data] for data in datas_shuffled]
 
@@ -204,7 +213,8 @@ class Bert_Wrapper():
             print("manul feature training number:", len(manul_other_list_shuffled))
             print("auto feature training number:", len(auto_other_list_shuffled))
             print("other feature training number:", len(other_list_shuffled))
-
+            # logging
+            self.info_dict['data_preprocess_log'] = f"{target_feature} training number:{len(target_list_shuffled)} \n 標注資料中的其他(量刑因子) training number:{len(manul_other_list_shuffled)} \n 自動擷取的中性句 training number: {len(auto_other_list_shuffled)} \n 最終的其他(量刑因子) training number: {len(other_list_shuffled)} \n"
             data_list = [target_list_shuffled, other_list_shuffled]
             X, y = self._create_labeled_data(data_list, self.NUM_LABELS)
             df_clean = self._create_cleaned_dataframe(X=X, y=y)
@@ -266,12 +276,13 @@ class Bert_Wrapper():
             neutral_list = manul_neutral_list_shuffled + auto_neutral_list_shuffled
             neutral_list_shuffled = shuffle(neutral_list, random_state=self.seed)
             
-            print("advantage training number:", len(advantage_list_shuffled))
-            print("disadvantage training number:", len(disadvantage_list_shuffled))
-            print("manul neutral training number:", len(manul_neutral_list_shuffled))
-            print("auto neutral training number:", len(auto_neutral_list_shuffled))
-            print("neutral training number:", len(neutral_list_shuffled))
-            
+            print("advantage(有利句) training number:", len(advantage_list_shuffled))
+            print("disadvantage（不利句） training number:", len(disadvantage_list_shuffled))
+            print("manul neutral（人工標注的中性句） training number:", len(manul_neutral_list_shuffled))
+            print("auto neutral（自動擷取的中性句） training number:", len(auto_neutral_list_shuffled))
+            print("neutral（最終的中性句） training number:", len(neutral_list_shuffled))
+            # logging
+            self.info_dict['data_preprocess_log'] = f"有利句 training number:{len(advantage_list_shuffled)} \n 不利句 training number:{len(disadvantage_list_shuffled)} \n 人工標注的中性句 training number: {len(manul_neutral_list_shuffled)} \n 自動擷取的中性句 training number: {len(auto_neutral_list_shuffled)} \n 最終中性句 training number: {len(neutral_list_shuffled)} \n"
             data_list = [disadvantage_list_shuffled, advantage_list_shuffled, neutral_list_shuffled]
             X, y = self._create_labeled_data(data_list, self.NUM_LABELS)
 
@@ -607,7 +618,7 @@ class Bert_Wrapper():
         '''
         Model hyper-parameter setting? #TODO: csu ask Murphy
         '''
-        self.model = BertForClassification.from_pretrained(PRETRAINED_MODEL_NAME, num_labels=self.NUM_LABELS, max_length=self.MAX_LENGTH, device=self.device)
+        self.model = BertForClassification.from_pretrained(PRETRAINED_MODEL_NAME, num_labels=self.NUM_LABELS, max_length=self.MAX_LENGTH, device=self.device, pooling_strategy=self.pooling_strategy)
         self.training_stats = []
         self.model.to(self.device)
         param_optimizer = list(self.model.named_parameters())
@@ -618,7 +629,7 @@ class Bert_Wrapper():
         ]
         # optimizer_grouped_parameters
         self.optimizer = AdamW(optimizer_grouped_parameters,
-                        lr = 2e-5, # args.learning_rate - default is 5e-5, our notebook had 2e-5
+                        lr = self.lr, # args.learning_rate - default is 5e-5, our notebook had 2e-5
                         eps = 1e-8 # args.adam_epsilon  - default is 1e-8.
                         )
         ################# Method 1 ######################
@@ -736,6 +747,7 @@ class Bert_Wrapper():
             if self.info_dict['save_model_name'] is not None:
                 with open(self.model_path, "wb") as file: # save model
                     pickle.dump([self.info_dict, self.model], file=file)
+                    print(f'>>>>> Finish training! Save model at {self.model_path} >>>>>')
             
         return
 

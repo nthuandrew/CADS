@@ -154,6 +154,12 @@ def get_average_performance(performance):
 
     return acc_av, pre_av, rc_av, rc_av, f1_av, cm_av
 
+def log_info(info, path=""):
+    if len(path) > 0:
+        with open(path, 'a') as f:
+            with redirect_stdout(f):
+                print(info)
+    return 
 def log_performance(acc, pre, rc, f1, cm, labels=None, path=""):
     if len(path) > 0:
         with open(path, 'a') as f:
@@ -176,6 +182,7 @@ def log_performance(acc, pre, rc, f1, cm, labels=None, path=""):
                 print(result)
                 # f1
                 result = []
+                print("F1 score......")
                 for label in labels:
                     print(f"Class {label}: {round(f1[label], 3)} ")
                     result += [round(f1[label], 3)]

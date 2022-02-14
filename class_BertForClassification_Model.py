@@ -15,6 +15,7 @@ class BertForClassification(BertPreTrainedModel):
         self.num_labels = config.num_labels
         self.MAX_LENGTH = config.max_length
         self.DEVICE = model_kwargs['device']
+        self.pooling_strategy = model_kwargs['pooling_strategy']
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.relu = nn.ReLU()
@@ -42,7 +43,13 @@ class BertForClassification(BertPreTrainedModel):
         sequence_output = outputs[0]
         encoder_hidden_states = sequence_output.to(self.DEVICE)
         ############## Baseline1 #####################
-        cls_vector = encoder_hidden_states[:, 0, :]
+        if self.pooling_strategy == 'cls':
+            cls_vector = encoder_hidden_states[:, 0, :]
+        elif self.pooling_strategy == 'reduce_mean':
+            cls_vector = encoder_hidden_states.sum(axis=1) / attention_mask.sum(axis=-1).unsqueeze(-1)
+        else:
+            print('>>>>> Wrong pooling strategy! >>>>>')
+            return
         logits = self.output_base(cls_vector)
         ############## END #####################
 
