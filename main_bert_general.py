@@ -79,7 +79,7 @@ else:
 
 # 建立日期
 today = str(datetime.date.today())
-log_output_path = f"{args.project_name}_{model_setting['train_data']}_version{args.version}.txt"
+log_output_path = f"{args.project_name}_{model_setting['mode']}_{model_setting['train_data']}_version{args.version}.txt"
 
 # %%
 if model_setting['mode'] == 'train_multiclass':
