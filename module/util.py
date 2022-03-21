@@ -67,7 +67,8 @@ class SentenceDataset(Dataset):
     
     # 定義回傳一筆訓練 / 測試數據的函式
     def __getitem__(self, idx):
-        if any([self.mode == "test", self.mode == "pred"]):
+        # if any([self.mode == "test", self.mode == "pred"]):
+        if any([self.mode == "pred"]):
             ids = self.df.iloc[idx, 1]  # get X
             label_tensor = None
             length = len(self.df.iloc[idx, 1])

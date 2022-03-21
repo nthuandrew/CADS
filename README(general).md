@@ -64,23 +64,23 @@ Flow: Data_Cleaner --> Create_Feature --> Prepared_Data --> Classify
 ### Usage:
 
 ```
---mode: train_sentence or train_factor。選擇要訓練不利/有利/中性句，或是量刑因子的分類。
+--mode: train_multiclass or train_bernouli。選擇要訓練像是有不利/有利/中性等多個 label 的句子分類(multiclass)，或是量刑因子的分類(bernouli)。
 ```
 
 ```
---train_data: sex or gun or drug。選擇是三種 cases 的哪一種。
+--train_data: 訓練資料的名稱，不要連檔案類型一起放，例如檔案如果叫做'train.xlsx'，就放 --train-data=train 即可。訓練資料要先放在 ./data/raw 裡面，
 ```
 
 ```
---neutral_data: 如果需要加入自動擷取的中性句，則加入這項，無則不需加入此項。
+--neutral_data: 如果需要加入額外的中性句，就把中性句放在 ./data/raw 裡面，並輸入檔名(去掉檔案類型)。
 ```
 
 ```
---project_name: 現在這個 project 的名稱。會把 train 好的 model 存在 /srv/model/{project_name} 裡面。
+--project_name: 現在這個 project 的名稱。會把 train 好的 model 存在 /data/model/{project_name} 裡面。
 ```
 
 ```
---version: 1.0 or 1.1 etc. 會在 /srv/model 建立對應版本號的 folder，train 好的 model 會被存在裡面。
+--version: 1.0 or 1.1 etc. 會在 /data/model 建立對應版本號的 folder，train 好的 model 會被存在裡面。
 ```
 
 ```
@@ -107,14 +107,15 @@ Flow: Data_Cleaner --> Create_Feature --> Prepared_Data --> Classify
 --lr: default 2e-5。learning rate。
 ```
 
-* ex: Train 不利/有利/中性句：
+* ex: Train 中性/負向/自殺行為/生理反應句：
 
 ```
-python main_bert_criminal.py --mode=train_sentence --train_data=sex --project_name=criminal --version=2.0 --epoch=2 --pooling_strategy=reduce_mean
+python main_bert_general.py --mode=train_multiclass --do_segment --factor=中性 --factor=負向 --factor=自殺行為 --factor=生理反應 --train_data=A1+A2_Sentence_neutral --project_name=social_crisis --version=0.0 --epoch=2 --pooling_strategy=reduce_mean
 ```
 
 * Train 量刑因子:
 
 ```
-python main_bert_criminal.py --mode=train_factor --train_data=sex --neutral_data --project_name=criminal --version=2.0 --epoch=2 --pooling_strategy=reduce_mean
+python main_bert_general.py --mode=train_bernouli --do_segment --factor=犯罪後之態度', '犯罪手段與所生之損害', '被害人的態度',
+    '犯罪行為人之品行', '其他審酌事項'] --train_data=A1+A2_Sentence_neutral --project_name=social_crisis --version=0.0 --epoch=2 --pooling_strategy=reduce_mean
 ```

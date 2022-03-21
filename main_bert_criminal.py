@@ -14,6 +14,8 @@ parser.add_argument("--pred_data", type=str, default="data_test_sex")
 parser.add_argument("--do_segment", action='store_true') 
 # 有沒有中性句
 parser.add_argument("--neutral_data", action='store_true')
+# Project name
+parser.add_argument("--project_name", type=float, default="criminal")
 # Model 的版本
 parser.add_argument("--version", type=float, default=2.0)
 # Model save name
@@ -99,15 +101,22 @@ if args.neutral_data:
     df_neu = pd.read_pickle(f'./data/cleaned/criminal_%s_neutral_seg_bert.pkl' % model_setting['train_data'])
 else:
     df_neu = None
+# 檢查 Project model folder 是否存在
+if os.path.isdir(f"/data/model/{args.project_name}"):
+    print(">>>>> Project folder(for placing well-trained model) has exist! >>>>>")
+else:
+    os.mkdir(f"/data/model/{args.project_name}")
+    print(">>>>> Project folder hasn't exist! Creating the new project folder(for placing well-trained model)! >>>>>")
+
 # 檢查 Model version 是否存在
-if os.path.isdir(f"/srv/model/version_{args.version}"):
+if os.path.isdir(f"/data/model/{args.project_name}/version_{args.version}"):
     print(">>>>> Model version has exist! >>>>>")
 else:
-    os.mkdir(f"/srv/model/version_{args.version}")
+    os.mkdir(f"/data/model/{args.project_name}/version_{args.version}")
     print(">>>>> Model version hasn't exist! Creating the new version folder! >>>>>")
 # 建立日期
 today = str(datetime.date.today())
-log_output_path = f"{model_setting['train_data']}_version{args.version}.txt"
+log_output_path = f"{args.project_name}_{model_setting['train_data']}_version{args.version}.txt"
 
 # %%
 if model_setting['mode'] == 'train_sentence':
@@ -123,7 +132,7 @@ if model_setting['mode'] == 'train_sentence':
     #     bw.train()
     #     bw.evaluate(path=f"{criminal_type}.txt")
     log_info(info=f"Training result for 不利/有利/中性句子三分類 at {datetime.datetime.now()} \n", path="data/result/"+log_output_path)
-    model_name = f"version_{args.version}/{model_setting['train_data']}_{model_setting['mode']}_epoch{args.epoch}_seed{args.seed}_{today}"
+    model_name = f"{args.project_name}/version_{args.version}/{model_setting['train_data']}_{model_setting['mode']}_epoch{args.epoch}_seed{args.seed}_{today}"
     bw = Bert_Wrapper(save_model_name=model_name, num_labels = 3, seed = args.seed,
                       batch_size = args.batch_size, epoch = args.epoch, max_len = args.max_len,
                       pooling_strategy = args.pooling_strategy,
@@ -144,7 +153,7 @@ elif model_setting['mode'] == 'train_factor':
     # df_neu = pd.read_pickle(f'./data/cleaned/criminal_%s_neutral_seg_bert.pkl' % model_setting['train_data'])
     for fac in model_setting['factor_lst']:
         log_info(info=f"Training result for 量刑因子:{fac} at {datetime.datetime.now()} \n", path="data/result/"+log_output_path)
-        model_name = f"version_{args.version}/{model_setting['train_data']}_{model_setting['mode']}_{fac}_epoch{args.epoch}_seed{args.seed}_{today}"
+        model_name = f"{args.project_name}/version_{args.version}/{model_setting['train_data']}_{model_setting['mode']}_{fac}_epoch{args.epoch}_seed{args.seed}_{today}"
         bw = Bert_Wrapper(save_model_name=model_name, num_labels = 2, seed = args.seed,
                           batch_size = args.batch_size, epoch = args.epoch, max_len = args.max_len,
                           pooling_strategy = args.pooling_strategy,

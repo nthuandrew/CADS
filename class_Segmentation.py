@@ -74,6 +74,32 @@ class Segmentation():
 
         init_jieba(*list(zip(stop_words_path_list, dict_path_list, idf_path_list, userdict_list))[methods_name['dict1']])
         return
+
+    '''
+    Segment(Bert)使用的通用版本
+    '''
+    def segment_wrapper(self, \
+        df, \
+        categorical_info, meta_info=[], target_columns=["Sentence"],output_filename=""):
+        df_list = [df]
+        categorical = categorical_info
+        #meta_info = ['TextID']
+        # meta_info=[meta_info]
+
+        df_list2 = []
+
+        for df in df_list:
+            df2 = pd.DataFrame(columns=df.columns)
+            df2[meta_info+categorical] = df[meta_info+categorical]
+            df_list2.append(df2)
+
+        # target_columns = [target_columns]
+        df_output = self._segment_articles(df_list, df_list2, target_columns)[0]
+        display(df_output)
+        df_output.to_csv(f"./data/cleaned/{output_filename}_seg_{self.type}.csv", index=False)
+        df_output.to_pickle(f"./data/cleaned/{output_filename}_seg_{self.type}.pkl")
+        print(f'>>>>> Save segmented file : ./data/cleaned/{output_filename}_seg_{self.type}.pkl >>>>>')
+        return df_output
                                      
     def segment_criminal_sentiment_analysis_articles_wrapper(self, \
         df, \
