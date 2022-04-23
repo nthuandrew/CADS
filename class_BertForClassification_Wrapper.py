@@ -12,13 +12,13 @@ import math
 from matplotlib import pyplot as plt
 # %%
 class Bert_Wrapper():
-    def __init__(self, save_model_name=None, num_labels=2, seed=1234,
+    def __init__(self, save_model_name=None, num_labels=2, seed=1234, device="",
     batch_size = 64, epoch = 2, pooling_strategy='reduce_mean', lr=2e-5, max_len = 128
     ):
         '''
         param save_model_name: None or str. If use None, then will not save model
         '''
-        self.device = setup_device()
+        self.device = setup_device(device)
         self.seed = seed
         seed_torch(seed=self.seed)
         self.MAX_LENGTH = max_len
