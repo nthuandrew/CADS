@@ -17,6 +17,7 @@ parser.add_argument("--project_name", type=str, default="Test")
 # Model 的版本
 parser.add_argument("--version", type=float, default=1.0)
 # Model save name
+parser.add_argument("--model_dir", type=str, default="")
 parser.add_argument("--model_name", type=str, default="")
 # Model setting
 parser.add_argument("--max_len", type=int, default=128)
@@ -65,16 +66,16 @@ else:
     df_neu = None
 
 # 檢查 Project model folder 是否存在
-if os.path.isdir(f"/data/model/{args.project_name}"):
+if os.path.isdir(f"{args.model_dir}/{args.project_name}"):
     print(">>>>> Project folder(for placing well-trained model) has exist! >>>>>")
 else:
-    os.mkdir(f"/data/model/{args.project_name}")
+    os.mkdir(f"{args.model_dir}/{args.project_name}")
     print(">>>>> Project folder hasn't exist! Creating the new project folder(for placing well-trained model)! >>>>>")
 # 檢查 Model version 是否存在
-if os.path.isdir(f"/data/model/{args.project_name}/version_{args.version}"):
+if os.path.isdir(f"{args.model_dir}/{args.project_name}/version_{args.version}"):
     print(">>>>> Model version has exist! >>>>>")
 else:
-    os.mkdir(f"/data/model/{args.project_name}/version_{args.version}")
+    os.mkdir(f"{args.model_dir}/{args.project_name}/version_{args.version}")
     print(">>>>> Model version hasn't exist! Creating the new version folder! >>>>>")
 
 # 建立日期

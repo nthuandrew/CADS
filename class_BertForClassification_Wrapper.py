@@ -12,7 +12,7 @@ import math
 from matplotlib import pyplot as plt
 # %%
 class Bert_Wrapper():
-    def __init__(self, save_model_name=None, num_labels=2, seed=1234, device="",
+    def __init__(self, model_dir="/data/model", save_model_name=None, num_labels=2, seed=1234, device="",
     batch_size = 64, epoch = 2, pooling_strategy='reduce_mean', lr=2e-5, max_len = 128
     ):
         '''
@@ -31,7 +31,7 @@ class Bert_Wrapper():
         self.model = None
         self.info_dict = {'save_model_name': save_model_name, 'hyper_param':{},'accuracy':None, 'precision':None, 'recall':None, 'f1':None, 'comfusion_matrix':None, \
             'data_preprocess_log': ""}
-        self.model_path = '/data/model/%s.pkl' % self.info_dict['save_model_name']
+        self.model_path = f"{model_dir}/{self.info_dict['save_model_name']}.pkl"
         if self.info_dict['save_model_name'] is not None and os.path.exists(self.model_path):
             print(">>>>>Find an exist trained model in our file system!")
             with open(self.model_path, "rb") as file:
