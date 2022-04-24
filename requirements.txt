@@ -11,3 +11,6 @@ xlrd==2.0.1
 openpyxl==3.0.7
 jieba==0.42.1
 transformers==4.10.0
+progressbar
+IPython
+
