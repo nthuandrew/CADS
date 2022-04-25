@@ -11,10 +11,10 @@ from class_BertForClassification_Wrapper import Bert_Wrapper
 '''
 # Init model
 seg = Segmentation(type="bert")
-sentence_model_name = "criminal/version_2.1/sex_train_sentence_epoch4_seed1234_2022-02-14"
-s_bw = Bert_Wrapper(save_model_name=sentence_model_name, device="cpu")
+sentence_model_name = "sex_train_sentence_epoch4_seed1234_2022-02-14"
+s_bw = Bert_Wrapper(model_dir="/data/model/criminal/version_2.1", save_model_name=sentence_model_name, device="cpu")
 factor1_model_name = "criminal/version_2.1/sex_train_factor_被害人的態度_epoch2_seed1234_2022-02-14"
-f1_bw = Bert_Wrapper(save_model_name=factor1_model_name, device="cpu")
+f1_bw = Bert_Wrapper(model_dir="/data/model/criminal/version_2.1", save_model_name=factor1_model_name, device="cpu")
 # %%
 '''
 這邊同一句話要做不同的分類(有利不利或是量刑因子，只要製作 dataloader 一次就好)
