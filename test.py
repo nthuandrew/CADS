@@ -11,9 +11,9 @@ from class_BertForClassification_Wrapper import Bert_Wrapper
 '''
 # Init model
 seg = Segmentation(type="bert")
-sentence_model_name = "criminal/version_1.0/sex_train_sentence_epoch4_seed1234_2022-02-14"
+sentence_model_name = "criminal/version_2.1/sex_train_sentence_epoch4_seed1234_2022-02-14"
 s_bw = Bert_Wrapper(save_model_name=sentence_model_name, device="cpu")
-factor1_model_name = "criminal/version_1.0/sex_train_factor_犯罪後之態度_epoch2_seed1234_2022-02-14"
+factor1_model_name = "criminal/version_2.1/sex_train_factor_被害人的態度_epoch2_seed1234_2022-02-14"
 f1_bw = Bert_Wrapper(save_model_name=factor1_model_name, device="cpu")
 # %%
 '''
@@ -40,3 +40,20 @@ print("不是這個量型因子:", f1_predictions[:, 1])
 
 
 # %%
+# 補救計畫(重新存 model)
+# version = "version_2.1"
+# pooling = 'reduce_mean'
+# for file in os.listdir(f"/data/model/criminal/{version}_old"):
+#     new_file = file.replace('.pkl', '')
+#     sentence_model_name = f"criminal/{version}_old/{new_file}"
+#     print(sentence_model_name)
+#     s_bw = Bert_Wrapper(save_model_name=sentence_model_name, device="cpu")
+#     model = s_bw.model
+#     info_dict = s_bw.info_dict
+#     # 需要視情況修改
+#     # cls, reduce_mean
+#     info_dict['hyper_param']['POOLING_STRATEGY'] = pooling
+#     target = [info_dict, model.state_dict()]
+#     print(f"/data/model/criminal/{version}/{file}")
+#     torch.save(target, f"/data/model/criminal/{version}/{file}")
+    

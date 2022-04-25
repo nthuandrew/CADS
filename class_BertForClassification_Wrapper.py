@@ -35,10 +35,17 @@ class Bert_Wrapper():
         if self.info_dict['save_model_name'] is not None and os.path.exists(self.model_path):
             print(">>>>>Find an exist trained model in our file system!")
             with open(self.model_path, "rb") as file:
-                info_dict, model = pickle.load(file)
+                info_dict, model_state_dict = torch.load(file, map_location=self.device)
+                # info_dict, model = pickle.load(file)
             # if info_dict['hyper_param'] == self.info_dict['hyper_param']:   # check if hyper_params are the same
                 self.info_dict = info_dict
-                self.model = model
+                # self.model = model
+                self.model = BertForClassification.from_pretrained(self.info_dict['hyper_param']['PRETRAINED_MODEL_NAME'], \
+                    num_labels=self.info_dict['hyper_param']['NUM_LABELS'], \
+                    max_length=self.info_dict['hyper_param']['MAX_LENGTH'], \
+                    device=self.device, \
+                    pooling_strategy=self.info_dict['hyper_param']['POOLING_STRATEGY'])
+                self.model.load_state_dict(model_state_dict)
         else:
             print(">>>>>Initial a new model!")
             self.info_dict['hyper_param']['seed'] = self.seed
@@ -46,6 +53,7 @@ class Bert_Wrapper():
             self.info_dict['hyper_param']['NUM_LABELS'] = self.NUM_LABELS 
             self.info_dict['hyper_param']['BATCH_SIZE'] = self.BATCH_SIZE 
             self.info_dict['hyper_param']['EPOCHS'] = self.EPOCHS 
+            self.info_dict['hyper_param']['POOLING_STRATEGY'] = self.pooling_strategy
             self.info_dict['hyper_param']['PRETRAINED_MODEL_NAME'] = self.PRETRAINED_MODEL_NAME
             self.info_dict['data_preprocess_log'] = ""
         
@@ -765,10 +773,12 @@ class Bert_Wrapper():
         # Murphy: 這邊即便傳入 save_model_name 但如果 file not exist 的話，就不會跑 train 的流程了
         if self.info_dict['save_model_name'] is not None and os.path.exists(self.model_path):
             with open(self.model_path, "rb") as file:
-                info_dict, model = pickle.load(file)
+                info_dict, model_state_dict = torch.load(file, map_location=self.device)
+                # info_dict, model = pickle.load(file)
             # if info_dict['hyper_param'] == self.info_dict['hyper_param']:   # check if hyper_params are the same
                 self.info_dict = info_dict
-                self.model = model
+                # self.model = model
+                self.model.load_state_dict(model_state_dict)
         
         # train a new model
         else:
@@ -854,9 +864,11 @@ class Bert_Wrapper():
             
             # save model
             if self.info_dict['save_model_name'] is not None:
-                with open(self.model_path, "wb") as file: # save model
-                    pickle.dump([self.info_dict, self.model], file=file)
-                    print(f'>>>>> Finish training! Save model at {self.model_path} >>>>>')
+                torch.save([self.info_dict, self.model.state_dict()], file=self.model_path)
+                print(f'>>>>> Finish training! Save model at {self.model_path} >>>>>')
+                # with open(self.model_path, "wb") as file: # save model
+                #     pickle.dump([self.info_dict, self.model], file=file)
+                #     print(f'>>>>> Finish training! Save model at {self.model_path} >>>>>')
             
         return
 
