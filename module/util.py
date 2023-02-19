@@ -6,7 +6,7 @@ import sys
 import pickle
 import pandas as pd
 import numpy as np
-import progressbar
+# import progressb ar
 import matplotlib
 import jieba
 import jieba.analyse
@@ -168,6 +168,7 @@ def log_performance(acc, pre, rc, f1, cm, labels=None, path=""):
     if len(path) > 0:
         with open(path, 'a') as f:
             with redirect_stdout(f):
+                print(">>>>>Evaluating Result:") 
                 # ACC
                 print("Accuracy: ", '%.4f'%acc)
                 # Precision

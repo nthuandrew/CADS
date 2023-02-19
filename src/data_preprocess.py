@@ -147,7 +147,7 @@ def json_to_txt(json_path,txt_path):
 
 
 
-def txt_to_clean(input_txt, clean_path=None, textmode=False):
+def txt_to_clean(input_txt, clean_path=None, textmode=True):
     if textmode is False:
         txt_path = input_txt
         with open(txt_path) as f:

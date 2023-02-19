@@ -2,6 +2,12 @@
 from module.util import *
 from class_Segmentation import Segmentation
 from class_BertForClassification_Wrapper import Bert_Wrapper
+# %%
+from zhon.hanzi import punctuation
+str = "，我好煩。"
+print(str.lstrip(punctuation))
+print(str.rstrip(punctuation))
+
 
 # %%
 

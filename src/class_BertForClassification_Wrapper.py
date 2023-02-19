@@ -916,7 +916,7 @@ class Bert_Wrapper():
         # y_test = pd.read_csv("data/cleaned/" + 'test' + ".csv", dtype=int).fillna("")['label']
         # y_test = pd.read_pickle("./data/cleaned/" + 'test' + ".pkl").fillna("")['label']
         acc, pre, rc, f1, cm = compute_performance(y_test.cpu(), predictions.cpu(), labels=labels)
-        log_performance(acc, pre, rc, f1, cm, labels=labels, path=path_)
+        log_performance(acc, pre, rc, f1, cm, labels=labels, path=path)
         return acc, pre, rc, f1, cm
 
 
