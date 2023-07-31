@@ -7,8 +7,8 @@ from src.article_predict import *
 from transformers import BertTokenizer, BertConfig
 local_css("style.css")
 
-sentence_model_path = 'sentence_model/four_class_augmented_0526_v2.pkl'
-article_model_path = 'article_model/0730_300limit_6epoch_binary.pt'
+sentence_model_path = 'four_class_augmented_0526_v2.pkl'
+article_model_path = '0730_300limit_6epoch_binary.pt'
 pretrained_model_name = 'hfl/chinese-bert-wwm-ext'
 label_column_list = ['無標註','自殺與憂鬱', '自殺行為', '其他類型']
 article_label_list = ['無危機文章', '高危機文章']
