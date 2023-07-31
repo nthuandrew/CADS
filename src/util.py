@@ -7,7 +7,6 @@ import pickle
 import pandas as pd
 import numpy as np
 # import progressb ar
-import matplotlib
 import jieba
 import jieba.analyse
 from collections import Counter
