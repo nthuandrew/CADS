@@ -10,3 +10,20 @@
 # ignore pychache
 __pycache__/*
 *pyc
+
+# ignore virtual environment
+.venv/
+
+ChatGLM/
+extra_dict/
+
+# 忽略 data 資料夾下的所有內容
+data/*
+
+# 但不忽略 data/final 資料夾
+!data/final/
+
+dcard_predictions_2_class.csv 
+dcard_predictions_4_class_all.csv 
+dcard_predictions.csv 
+dcard_predictions_2_class_all.csv 
