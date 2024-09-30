@@ -16,15 +16,21 @@ from transformers import BertTokenizer
 from collections import Counter
 from zhon.hanzi import punctuation
 import string
+from tqdm import tqdm
 # %%
 def txt_to_clean(input_str):
     # 去除頭尾的中文標點符號
-    input_str = input_str.lstrip(punctuation)
-    input_str = input_str.rstrip(punctuation)
-    # 去除頭尾的英文標點符號
-    input_str = input_str.lstrip(string.punctuation)
-    input_str = input_str.rstrip(string.punctuation)
-    return input_str
+    try:
+        input_str = input_str.lstrip(punctuation)
+        input_str = input_str.rstrip(punctuation)
+        # 去除頭尾的英文標點符號
+        input_str = input_str.lstrip(string.punctuation)
+        input_str = input_str.rstrip(string.punctuation)
+
+        return input_str
+    except:
+        return str(input_str)
+    # return input_str
 # %%
 class SentenceDataset(Dataset):
     # 讀取前處理後的 tsv 檔並初始化一些參數
@@ -40,6 +46,8 @@ class SentenceDataset(Dataset):
     # 定義回傳一筆訓練 / 測試數據的函式
     def __getitem__(self, idx):
         if self.mode == "test":
+            # print("idx:", idx)
+            # print(type(self.X))
             text = txt_to_clean(self.X[idx])
             label_tensor = None
         else:
@@ -150,7 +158,7 @@ class Pipeline():
         dataset_shuffled[y_column_list[external_column_idx]] = shuffle(external_list, random_state=self.seed)
         
         for idx, i in enumerate(dataset_shuffled):
-            print(f"{i} total sample numer, which label is '{idx}': {len(dataset_shuffled[i])}")
+            print(f"{i} total sample number, which label is '{idx}': {len(dataset_shuffled[i])}")
         data_list = [ dataset_shuffled[data] for data in dataset_shuffled]
  
         return data_list
@@ -186,7 +194,7 @@ class Pipeline():
         data_list = [other_list_shuffled, target_list_shuffled]
         return data_list
 
-    def prepare_dataloader(self, extract_datalist=None, for_prediction=False):
+    def prepare_dataloader(self, extract_datalist=None, for_prediction=False, not_df=False):
         '''
         1. Prepare training data for factor classification
         2. To prepare new data for prediction, we need to set df_external=None and for_prediction=True
@@ -195,6 +203,8 @@ class Pipeline():
             assert extract_datalist is not None
             data_list = extract_datalist
             df, X, y = self._create_labeled_data(data_list, self.num_labels)
+            # print("X: \n",X)
+            # print("y: \n",y)
             # Split data
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.train_test_split_ratio, random_state=self.seed)
             X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=self.train_test_split_ratio, random_state=self.seed)
@@ -217,7 +227,15 @@ class Pipeline():
 
         else:   # Prediction
             pred_df = extract_datalist
-            predset = self._create_dataset(pred_df[self.x_column_name], [0]*len(pred_df), type="test")
+            # To compute performance, change type='test' into type='valid'
+            ## new for test
+            # df, X, y = self._create_labeled_data(pred_df, self.num_labels)
+            # predset = self._create_dataset(X, y, type="valid")
+            ## end of new
+            if not_df:
+                predset = self._create_dataset(pred_df, [0]*len(pred_df), type="test")
+            else:
+                predset = self._create_dataset(pred_df[self.x_column_name], [0]*len(pred_df), type="test")
             self.predloader = DataLoader(predset, batch_size=self.batch_size, shuffle=False, 
                                     collate_fn=self._create_mini_batch)
 
@@ -244,7 +262,7 @@ class Pipeline():
         
         if len(self.load_model_path) > 0:
             model_state_dict = torch.load(self.load_model_path, map_location=self.device)
-            self.model.load_state_dict(model_state_dict)
+            self.model.load_state_dict(model_state_dict, strict=False)
             print('>>>>>Load model weight from pretrained model path.')
 
         self.training_stats = []
@@ -288,7 +306,8 @@ class Pipeline():
         total = 0
         with torch.no_grad():
             # 遍巡整個資料集
-            for data in dataloader: # cv data
+            
+            for data in tqdm(dataloader): # cv data
                 # 將所有 tensors 移到 GPU 上
                 if next(model.parameters()).is_cuda:
                     data = [t.to("cuda:0") for t in data if t is not None]
@@ -357,8 +376,7 @@ class Pipeline():
             running_train_loss = 0.0
             running_train_correct = 0.0
             train_total = 0.0
-            for data in self.trainloader:
-                
+            for idx, data in enumerate(tqdm(self.trainloader)):
                 tokens_tensors, segments_tensors, \
                 masks_tensors, labels = [t.to(self.device) for t in data]
 
@@ -374,6 +392,7 @@ class Pipeline():
                 loss = outputs[0]
                 # backward
                 loss.backward()
+               
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
                 self.optimizer.step()
                 self.scheduler.step()
@@ -454,8 +473,8 @@ class Pipeline():
         for i in range(self.num_labels):
             labels.append(i)
         predictions, _, y_test = self.get_predictions(self.model, self.testloader, compute_acc=True)
-        acc, pre, rc, f1, cm = compute_performance(y_test.cpu(), predictions.cpu(), labels=labels)
-        log_performance(acc, pre, rc, f1, cm, labels=labels, path=path)
+        acc, pre, rc, f1, cm, micro_pre, macro_pre, weighted_pre, micro_rc, macro_rc, weighted_rc, micro_f1, macro_f1, weighted_f1 = compute_performance(y_test.cpu(), predictions.cpu(), labels=labels)
+        log_performance(acc, pre, rc, f1, cm, micro_pre, macro_pre, weighted_pre, micro_rc, macro_rc, weighted_rc, micro_f1, macro_f1, weighted_f1, labels=labels, path=path)
         return acc, pre, rc, f1, cm
     
 
